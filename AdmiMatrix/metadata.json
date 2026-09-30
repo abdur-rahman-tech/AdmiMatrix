@@ -1,0 +1,6 @@
+{
+  "name": "AdmiMatrix",
+  "description": "AdmiMatrix — Chitral Population & University Student Admission Analytics and Forecasting Platform",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
