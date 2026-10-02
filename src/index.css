@@ -284,96 +284,19 @@ html.dark .high-contrast {
   font-weight: 800 !important;
 }
 
-/* ==========================================================================
-   INTERACTIVE BOLD TEXT HOVER SYSTEM
-   Changes all bold text color to purple when hovered by cursor
-   ========================================================================== */
-
-b,
-strong,
-th,
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-.font-bold,
-.font-semibold,
-.font-extrabold,
-.font-black,
-[class*="font-bold"],
-[class*="font-extrabold"],
-[class*="font-semibold"] {
-  transition: color 0.18s ease-in-out;
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid #0891b2;
+  outline-offset: 2px;
 }
 
-b:hover,
-strong:hover,
-th:hover,
-h1:hover,
-h2:hover,
-h3:hover,
-h4:hover,
-h5:hover,
-h6:hover,
-.font-bold:hover,
-.font-semibold:hover,
-.font-extrabold:hover,
-.font-black:hover,
-[class*="font-bold"]:hover,
-[class*="font-extrabold"]:hover,
-[class*="font-semibold"]:hover {
-  color: #7e22ce !important; /* Royal Purple (light mode) */
-}
+@media (prefers-reduced-motion: reduce) {
 
-/* Dark mode luminous purple */
-.dark b:hover,
-.dark strong:hover,
-.dark th:hover,
-.dark h1:hover,
-.dark h2:hover,
-.dark h3:hover,
-.dark h4:hover,
-.dark h5:hover,
-.dark h6:hover,
-.dark .font-bold:hover,
-.dark .font-semibold:hover,
-.dark .font-extrabold:hover,
-.dark .font-black:hover,
-.dark [class*="font-bold"]:hover,
-.dark [class*="font-extrabold"]:hover,
-.dark [class*="font-semibold"]:hover {
-  color: #c084fc !important; /* Luminous Purple (dark mode) */
-}
-
-/* High Contrast Mode Overrides */
-.high-contrast b:hover,
-.high-contrast strong:hover,
-.high-contrast .font-bold:hover,
-.high-contrast .font-semibold:hover,
-.high-contrast .font-extrabold:hover {
-  color: #6b21a8 !important;
-}
-
-.dark.high-contrast b:hover,
-.dark.high-contrast strong:hover,
-.dark.high-contrast .font-bold:hover,
-.dark.high-contrast .font-semibold:hover,
-.dark.high-contrast .font-extrabold:hover {
-  color: #d8b4fe !important;
-}
-
-/* Contrast Protection: Preserve white text visibility on solid purple buttons/badges */
-button.bg-purple-600:hover,
-button.bg-purple-700:hover,
-button.bg-purple-800:hover,
-button.bg-purple-900:hover,
-.bg-purple-600.text-white:hover,
-.bg-purple-700.text-white:hover,
-.bg-purple-800.text-white:hover,
-button.bg-purple-600:hover *,
-button.bg-purple-700:hover *,
-button.bg-purple-800:hover * {
-  color: #ffffff !important;
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
