@@ -34,6 +34,7 @@ import { AdminAccessGate } from './AdminAccessGate';
 import { PopulationCRUD } from './PopulationCRUD';
 import { AdmissionsCRUD } from './AdmissionsCRUD';
 import { UserAccessManager } from './UserAccessManager';
+import admimatrixOfficialLogo from '../../assets';
 
 interface AdminDashboardProps {
   populationData: PopulationRecord[];
@@ -130,13 +131,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div className="flex items-center space-x-3.5">
           <div className="w-12 h-12 rounded-xl overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 ring-2 ring-cyan-500/60 shrink-0 shadow-xs flex items-center justify-center">
             <img
-              src="/skyler_official_logo.jpg"
-              alt="Official Logo"
+              src={admimatrixOfficialLogo}
+              alt="AdmiMatrix logo"
               className="w-full h-full object-cover"
-              referrerPolicy="no-referrer"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = '/uoch-logo.png';
-              }}
             />
           </div>
           <div>
@@ -221,19 +218,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <button
           id="tab-btn-population-crud"
           onClick={() => setActiveMainTab('POPULATION')}
-          className={`pb-2.5 px-3 flex items-center space-x-2 transition-all duration-200 ease-out hover:-translate-y-0.5 active:scale-95 border-b-2 whitespace-nowrap cursor-pointer rounded-t-lg ${
-            activeMainTab === 'POPULATION'
+          className={`pb-2.5 px-3 flex items-center space-x-2 transition-all duration-200 ease-out hover:-translate-y-0.5 active:scale-95 border-b-2 whitespace-nowrap cursor-pointer rounded-t-lg ${activeMainTab === 'POPULATION'
               ? 'border-purple-600 text-purple-600 dark:text-purple-400 font-bold bg-purple-50/50 dark:bg-purple-950/20'
               : 'border-transparent text-slate-500 hover:text-purple-600 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/40'
-          }`}
+            }`}
         >
           <Users className="w-4 h-4" />
           <span>Chitral Population CRUD</span>
-          <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-            activeMainTab === 'POPULATION'
+          <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${activeMainTab === 'POPULATION'
               ? 'bg-purple-600 text-white shadow-xs'
               : 'bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300'
-          }`}>
+            }`}>
             {populationData.length}
           </span>
         </button>
@@ -241,11 +236,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {/* Tab 2: Admissions Ingestion & CRUD */}
         <button
           onClick={() => setActiveMainTab('ADMISSIONS')}
-          className={`pb-2.5 px-2 flex items-center space-x-2 transition-all duration-200 ease-out hover:-translate-y-0.5 active:scale-95 border-b-2 whitespace-nowrap cursor-pointer ${
-            activeMainTab === 'ADMISSIONS'
+          className={`pb-2.5 px-2 flex items-center space-x-2 transition-all duration-200 ease-out hover:-translate-y-0.5 active:scale-95 border-b-2 whitespace-nowrap cursor-pointer ${activeMainTab === 'ADMISSIONS'
               ? 'border-purple-600 text-purple-600 dark:text-purple-400 font-bold'
               : 'border-transparent text-slate-500 hover:text-purple-600 dark:hover:text-white'
-          }`}
+            }`}
         >
           <GraduationCap className="w-4 h-4" />
           <span>Admissions Records CRUD</span>
@@ -257,11 +251,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {/* Tab 3: Access Governance (Owner Authority) */}
         <button
           onClick={() => setActiveMainTab('GOVERNANCE')}
-          className={`pb-2.5 px-2 flex items-center space-x-2 transition-all duration-200 ease-out hover:-translate-y-0.5 active:scale-95 border-b-2 whitespace-nowrap cursor-pointer ${
-            activeMainTab === 'GOVERNANCE'
+          className={`pb-2.5 px-2 flex items-center space-x-2 transition-all duration-200 ease-out hover:-translate-y-0.5 active:scale-95 border-b-2 whitespace-nowrap cursor-pointer ${activeMainTab === 'GOVERNANCE'
               ? 'border-purple-600 text-purple-600 dark:text-purple-400 font-bold'
               : 'border-transparent text-slate-500 hover:text-purple-600 dark:hover:text-white'
-          }`}
+            }`}
         >
           <ShieldCheck className="w-4 h-4" />
           <span>Access Governance (Owner Authority)</span>
@@ -275,11 +268,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {/* Tab 4: Audit & Provenance */}
         <button
           onClick={() => setActiveMainTab('AUDIT')}
-          className={`pb-2.5 px-2 flex items-center space-x-2 transition-all duration-200 ease-out hover:-translate-y-0.5 active:scale-95 border-b-2 whitespace-nowrap cursor-pointer ${
-            activeMainTab === 'AUDIT'
+          className={`pb-2.5 px-2 flex items-center space-x-2 transition-all duration-200 ease-out hover:-translate-y-0.5 active:scale-95 border-b-2 whitespace-nowrap cursor-pointer ${activeMainTab === 'AUDIT'
               ? 'border-purple-600 text-purple-600 dark:text-purple-400 font-bold'
               : 'border-transparent text-slate-500 hover:text-purple-600 dark:hover:text-white'
-          }`}
+            }`}
         >
           <History className="w-4 h-4" />
           <span>Audit Logs ({auditLogs.length})</span>

@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { PopulationRecord, AdmissionRecord, ForecastResult, AuditLog, UserRole } from '../../types';
 import { MetricCard } from '../common/MetricCard';
-import skylerOfficialLogo from '../../assets';
+import admimatrixOfficialLogo from '../../assets';
 
 interface DashboardOverviewProps {
   populationData: PopulationRecord[];
@@ -65,18 +65,14 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   return (
     <div id="dashboard-overview-container" className="space-y-6">
       {/* Clean, Simple Executive Header */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-l-4 border-l-emerald-500 border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center space-x-4">
           <div className="w-14 h-14 rounded-xl overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 ring-2 ring-cyan-500/60 shadow-xs shrink-0 flex items-center justify-center">
             <img
               id="admimatrix-overview-logo"
-              src={skylerOfficialLogo}
-              alt="Official Logo — Skyler The Course Navigator"
+              src={admimatrixOfficialLogo}
+              alt="AdmiMatrix logo"
               className="w-full h-full object-cover"
-              referrerPolicy="no-referrer"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = '/skyler_official_logo.jpg';
-              }}
             />
           </div>
           <div>

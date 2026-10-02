@@ -130,7 +130,7 @@ export default function App() {
       } else {
         document.documentElement.classList.remove('dark');
       }
-    } catch {}
+    } catch { }
   }, [darkMode]);
 
   // Keep userRole strictly in sync with session
@@ -146,13 +146,13 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem('uochpulse_admin_users', JSON.stringify(adminUsers));
-    } catch {}
+    } catch { }
   }, [adminUsers]);
 
   useEffect(() => {
     try {
       localStorage.setItem('uochpulse_access_requests', JSON.stringify(accessRequests));
-    } catch {}
+    } catch { }
   }, [accessRequests]);
 
   useEffect(() => {
@@ -163,7 +163,7 @@ export default function App() {
         sessionStorage.removeItem('uochpulse_session_user');
         localStorage.removeItem('uochpulse_session_user');
       }
-    } catch {}
+    } catch { }
   }, [currentSessionUser]);
 
   // Update a user's PIN
@@ -213,13 +213,13 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem('uochpulse_pop_data', JSON.stringify(populationData));
-    } catch {}
+    } catch { }
   }, [populationData]);
 
   useEffect(() => {
     try {
       localStorage.setItem('uochpulse_adm_data', JSON.stringify(admissionsData));
-    } catch {}
+    } catch { }
   }, [admissionsData]);
 
   // Determine active verification status (if all records are verified or synthetic)
@@ -252,9 +252,8 @@ export default function App() {
 
   return (
     <div
-      className={`min-h-screen ${
-        darkMode ? 'dark bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'
-      } flex flex-col font-sans antialiased selection:bg-purple-600 selection:text-white transition-colors`}
+      className={`min-h-screen ${darkMode ? 'dark bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'
+        } flex flex-col font-sans antialiased selection:bg-purple-600 selection:text-white transition-colors`}
     >
       {/* Top Navigation */}
       <Navbar
@@ -344,12 +343,8 @@ export default function App() {
             <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-900 ring-1 ring-cyan-500/50 shrink-0 flex items-center justify-center">
               <img
                 src={skylerOfficialLogo}
-                alt="Official Logo"
+                alt="AdmiMatrix logo"
                 className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = '/skyler_official_logo.jpg';
-                }}
               />
             </div>
             <div>

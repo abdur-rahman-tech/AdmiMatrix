@@ -20,6 +20,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { AdminUser, AccessRequest, UserRole } from '../../types';
+import admimatrixOfficialLogo from '../../assets';
 
 interface AdminAccessGateProps {
   adminUsers: AdminUser[];
@@ -223,13 +224,9 @@ export const AdminAccessGate: React.FC<AdminAccessGateProps> = ({
         <div className="bg-gradient-to-r from-slate-950 via-purple-950 to-slate-900 p-6 text-white text-center relative">
           <div className="w-16 h-16 mx-auto rounded-2xl overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 ring-2 ring-cyan-500/60 shadow-md mb-3 flex items-center justify-center">
             <img
-              src="/skyler_official_logo.jpg"
-              alt="Official Logo"
+              src={admimatrixOfficialLogo}
+              alt="AdmiMatrix logo"
               className="w-full h-full object-cover"
-              referrerPolicy="no-referrer"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = '/uoch-logo.png';
-              }}
             />
           </div>
 
@@ -261,11 +258,10 @@ export const AdminAccessGate: React.FC<AdminAccessGateProps> = ({
               setActiveMode('PIN');
               setPinError(null);
             }}
-            className={`py-3 text-center transition-all duration-200 ease-out hover:-translate-y-0.5 active:scale-95 flex items-center justify-center space-x-1.5 cursor-pointer ${
-              activeMode === 'PIN'
+            className={`py-3 text-center transition-all duration-200 ease-out hover:-translate-y-0.5 active:scale-95 flex items-center justify-center space-x-1.5 cursor-pointer ${activeMode === 'PIN'
                 ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 font-bold border-b-2 border-purple-600 dark:border-purple-400'
                 : 'text-slate-600 dark:text-slate-400 hover:text-purple-600 dark:hover:text-white'
-            }`}
+              }`}
           >
             <KeyRound className="w-3.5 h-3.5" />
             <span>Enter PIN</span>
@@ -276,11 +272,10 @@ export const AdminAccessGate: React.FC<AdminAccessGateProps> = ({
               setActiveMode('REQUEST');
               setReqSuccess(false);
             }}
-            className={`py-3 text-center transition-all duration-200 ease-out hover:-translate-y-0.5 active:scale-95 flex items-center justify-center space-x-1.5 cursor-pointer relative ${
-              activeMode === 'REQUEST'
+            className={`py-3 text-center transition-all duration-200 ease-out hover:-translate-y-0.5 active:scale-95 flex items-center justify-center space-x-1.5 cursor-pointer relative ${activeMode === 'REQUEST'
                 ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 font-bold border-b-2 border-purple-600 dark:border-purple-400'
                 : 'text-slate-600 dark:text-slate-400 hover:text-purple-600 dark:hover:text-white'
-            }`}
+              }`}
           >
             <UserPlus className="w-3.5 h-3.5" />
             <span>Request Access</span>
@@ -294,11 +289,10 @@ export const AdminAccessGate: React.FC<AdminAccessGateProps> = ({
               setActiveMode('GMAIL');
               setGmailError(null);
             }}
-            className={`py-3 text-center transition-all duration-200 ease-out hover:-translate-y-0.5 active:scale-95 flex items-center justify-center space-x-1.5 cursor-pointer ${
-              activeMode === 'GMAIL'
+            className={`py-3 text-center transition-all duration-200 ease-out hover:-translate-y-0.5 active:scale-95 flex items-center justify-center space-x-1.5 cursor-pointer ${activeMode === 'GMAIL'
                 ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 font-bold border-b-2 border-purple-600 dark:border-purple-400'
                 : 'text-slate-600 dark:text-slate-400 hover:text-purple-600 dark:hover:text-white'
-            }`}
+              }`}
           >
             <Mail className="w-3.5 h-3.5" />
             <span>Gmail + PIN</span>

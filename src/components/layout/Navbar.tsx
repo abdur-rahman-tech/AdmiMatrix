@@ -8,7 +8,7 @@ import {
   Unlock
 } from 'lucide-react';
 import { UserRole, VerificationStatus, AdminUser } from '../../types';
-import skylerOfficialLogo from '../../assets';
+import admimatrixOfficialLogo from '../../assets';
 
 interface NavbarProps {
   activeTab: string;
@@ -53,7 +53,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     <header className="sticky top-0 z-40 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo & Brand: AdmiMatrix with Official Skyler Emblem */}
+          {/* Logo & Brand */}
           <div
             id="brand-header-container"
             className="flex items-center space-x-3 select-none"
@@ -67,13 +67,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <div className="w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 ring-2 ring-cyan-500/60 hover:ring-cyan-400 shadow-xs flex items-center justify-center transition-all duration-200">
                 <img
-                  src={skylerOfficialLogo}
-                  alt="Official Logo"
+                  src={admimatrixOfficialLogo}
+                  alt="AdmiMatrix logo"
                   className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/skyler_official_logo.jpg';
-                  }}
                 />
               </div>
             </button>
@@ -107,11 +103,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`group flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 ease-out cursor-pointer active:scale-95 ${
-                    isActive
+                  className={`group flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 ease-out cursor-pointer active:scale-95 ${isActive
                       ? 'bg-purple-600 text-white shadow-xs'
                       : 'text-slate-600 dark:text-slate-300 hover:text-purple-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
+                    }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
                   <span>{item.label}</span>
@@ -158,11 +153,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs whitespace-nowrap font-medium transition-all duration-150 active:scale-95 ${
-                  isActive
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs whitespace-nowrap font-medium transition-all duration-150 active:scale-95 ${isActive
                     ? 'bg-purple-600 text-white shadow-xs'
                     : 'text-slate-600 dark:text-slate-300 hover:text-purple-600 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
+                  }`}
               >
                 <Icon className="w-3.5 h-3.5" />
                 <span>{item.label}</span>
