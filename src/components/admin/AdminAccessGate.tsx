@@ -327,7 +327,7 @@ export const AdminAccessGate: React.FC<AdminAccessGateProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  setPinInput('8792');
+                  setPinInput('4321');
                   setPinError(null);
                   setActiveMode('PIN');
                 }}
