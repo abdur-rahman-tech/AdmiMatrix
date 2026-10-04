@@ -313,14 +313,14 @@ export const AdminAccessGate: React.FC<AdminAccessGateProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  setPinInput('7860');
+                  setPinInput('7879');
                   setPinError(null);
                   setActiveMode('PIN');
                 }}
                 className="px-2.5 py-1 rounded-lg bg-white dark:bg-purple-900/60 border border-purple-300 dark:border-purple-700 text-xs font-mono font-bold text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900 transition flex items-center space-x-1 cursor-pointer"
               >
                 <span>Owner:</span>
-                <span className="text-emerald-700 dark:text-emerald-400">7860</span>
+                <span className="text-emerald-700 dark:text-emerald-400">NIC</span>
                 <span className="text-[10px] text-slate-500 font-sans font-normal">(Abdur Rahman)</span>
               </button>
 
