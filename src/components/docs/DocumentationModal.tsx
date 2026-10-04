@@ -17,8 +17,8 @@ export const DocumentationModal: React.FC<DocumentationModalProps> = ({ isOpen, 
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-full overflow-hidden bg-purple-900/20 ring-2 ring-purple-500/40 shrink-0">
               <img
-                src="/uoch-logo.png"
-                alt="University of Chitral Logo"
+                src="/logo.jpg"
+                alt="AdmiMatrix Logo"
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
               />

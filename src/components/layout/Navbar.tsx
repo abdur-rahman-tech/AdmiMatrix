@@ -76,7 +76,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/skyler_official_logo.jpg';
+                    (e.target as HTMLImageElement).src = '/logo.jpg';
                   }}
                 />
               </div>

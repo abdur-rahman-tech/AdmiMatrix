@@ -223,12 +223,12 @@ export const AdminAccessGate: React.FC<AdminAccessGateProps> = ({
         <div className="bg-gradient-to-r from-slate-950 via-purple-950 to-slate-900 p-6 text-white text-center relative">
           <div className="w-16 h-16 mx-auto rounded-2xl overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 ring-2 ring-cyan-500/60 shadow-md mb-3 flex items-center justify-center">
             <img
-              src="/skyler_official_logo.jpg"
+              src="/logo.jpg"
               alt="Official Logo"
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = '/uoch-logo.png';
+                (e.target as HTMLImageElement).src = '/logo.jpg';
               }}
             />
           </div>

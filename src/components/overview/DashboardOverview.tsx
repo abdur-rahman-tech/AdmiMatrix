@@ -72,11 +72,11 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             <img
               id="admimatrix-overview-logo"
               src={skylerOfficialLogo}
-              alt="Official Logo — Skyler The Course Navigator"
+              alt="Official Logo"
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = '/skyler_official_logo.jpg';
+                (e.target as HTMLImageElement).src = '/logo.jpg';
               }}
             />
           </div>

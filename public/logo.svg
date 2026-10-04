@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">AdmiMatrix logo</title>
+  <desc id="desc">A modern Chitral institutional intelligence mark.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="50%" stop-color="#111827" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#67e8f9" />
+      <stop offset="100%" stop-color="#a78bfa" />
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="52" fill="url(#bg)"/>
+  <path d="M64 186L128 54L192 186H171L157 157H99L85 186H64ZM108 136H148L133 103L108 136Z" fill="url(#accent)"/>
+  <circle cx="128" cy="196" r="22" fill="#67e8f9" opacity="0.9"/>
+  <path d="M110 196h36" stroke="#0f172a" stroke-width="8" stroke-linecap="round"/>
+</svg>
