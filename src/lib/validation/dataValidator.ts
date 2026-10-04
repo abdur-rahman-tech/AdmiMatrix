@@ -265,6 +265,27 @@ export function validateAdmissionCSV(csvContent: string): AdmissionValidationRes
     }
   });
 
+  // Timeline Continuity & Gap Detection across batches
+  if (validatedRecords.length > 1) {
+    const sorted = [...validatedRecords].sort((a, b) => a.startYear - b.startYear);
+    for (let i = 1; i < sorted.length; i++) {
+      const prevStart = sorted[i - 1].startYear;
+      const currStart = sorted[i].startYear;
+      if (currStart > prevStart + 1) {
+        const missing: string[] = [];
+        for (let y = prevStart + 1; y < currStart; y++) {
+          missing.push(`${y}-${y + 1}`);
+        }
+        warnings.push({
+          rowNumber: i + 1,
+          fieldName: 'TIMELINE_GAP',
+          severity: 'WARNING',
+          message: `Discontinuous timeline detected between ${sorted[i - 1].academicYear} and ${sorted[i].academicYear}. Missing academic cycles: ${missing.join(', ')}.`
+        });
+      }
+    }
+  }
+
   return {
     isValid: errors.length === 0 && validatedRecords.length > 0,
     errors,

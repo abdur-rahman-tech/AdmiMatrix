@@ -25,8 +25,11 @@ import { HistoricalTrends } from './components/analytics/HistoricalTrends';
 import { ForecastingControlRoom } from './components/forecast/ForecastingControlRoom';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { DocumentationModal } from './components/docs/DocumentationModal';
+import { AskTheData } from './components/query/AskTheData';
+import { ApiKeyModal } from './components/ai/ApiKeyModal';
+import { DeveloperSettingsSidebar } from './components/layout/DeveloperSettingsSidebar';
 import skylerOfficialLogo from './assets';
-import { Heart, GraduationCap, ExternalLink } from 'lucide-react';
+import { Heart, GraduationCap, ExternalLink, Sliders } from 'lucide-react';
 
 const DEFAULT_ADMIN_USERS: AdminUser[] = [
   {
@@ -39,17 +42,6 @@ const DEFAULT_ADMIN_USERS: AdminUser[] = [
     isApproved: true,
     department: 'Directorate of Institutional Planning & Census Affairs',
     createdAt: '2024-01-01T00:00:00Z'
-  },
-  {
-    id: 'user-admin-002',
-    email: 'admissions.cell@uoch.edu.pk',
-    name: 'Prof. Inam Ullah',
-    role: 'ADMIN',
-    pin: '4321',
-    isOwner: false,
-    isApproved: true,
-    department: 'University Admissions Directorate',
-    createdAt: '2024-02-15T00:00:00Z'
   }
 ];
 
@@ -80,12 +72,16 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [userRole, setUserRole] = useState<UserRole>('VIEWER');
   const [isDocsOpen, setIsDocsOpen] = useState<boolean>(false);
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState<boolean>(false);
+  const [isDevSettingsOpen, setIsDevSettingsOpen] = useState<boolean>(false);
 
   // Admin users and Access Requests with local storage persistence
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>(() => {
     try {
-      const saved = localStorage.getItem('uochpulse_admin_users');
-      return saved ? JSON.parse(saved) : DEFAULT_ADMIN_USERS;
+      const saved = localStorage.getItem('uochpulse_admin_users_v2');
+      if (saved) return JSON.parse(saved);
+      localStorage.removeItem('uochpulse_admin_users');
+      return DEFAULT_ADMIN_USERS;
     } catch {
       return DEFAULT_ADMIN_USERS;
     }
@@ -130,7 +126,7 @@ export default function App() {
       } else {
         document.documentElement.classList.remove('dark');
       }
-    } catch { }
+    } catch {}
   }, [darkMode]);
 
   // Keep userRole strictly in sync with session
@@ -145,14 +141,14 @@ export default function App() {
   // Sync users, requests, and session
   useEffect(() => {
     try {
-      localStorage.setItem('uochpulse_admin_users', JSON.stringify(adminUsers));
-    } catch { }
+      localStorage.setItem('uochpulse_admin_users_v2', JSON.stringify(adminUsers));
+    } catch {}
   }, [adminUsers]);
 
   useEffect(() => {
     try {
       localStorage.setItem('uochpulse_access_requests', JSON.stringify(accessRequests));
-    } catch { }
+    } catch {}
   }, [accessRequests]);
 
   useEffect(() => {
@@ -163,7 +159,7 @@ export default function App() {
         sessionStorage.removeItem('uochpulse_session_user');
         localStorage.removeItem('uochpulse_session_user');
       }
-    } catch { }
+    } catch {}
   }, [currentSessionUser]);
 
   // Update a user's PIN
@@ -188,8 +184,11 @@ export default function App() {
 
   const [admissionsData, setAdmissionsData] = useState<AdmissionRecord[]>(() => {
     try {
-      const saved = localStorage.getItem('uochpulse_adm_data');
-      return saved ? JSON.parse(saved) : INITIAL_ADMISSION_DATA;
+      const saved = localStorage.getItem('uochpulse_adm_data_v2');
+      if (saved) return JSON.parse(saved);
+      // Clean legacy synthetic storage to ensure official data loads
+      localStorage.removeItem('uochpulse_adm_data');
+      return INITIAL_ADMISSION_DATA;
     } catch {
       return INITIAL_ADMISSION_DATA;
     }
@@ -205,7 +204,7 @@ export default function App() {
       role: 'ADMIN',
       action: 'SYSTEM_BOOTSTRAP',
       targetEntity: 'system',
-      details: 'Initialized AdmiMatrix platform with 1998-2023 Census and 2017-2026 UOCH admissions.'
+      details: 'Initialized AdmiMatrix platform with 1998-2023 Census and official 2017-2026 UOCH admissions.'
     }
   ]);
 
@@ -213,13 +212,13 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem('uochpulse_pop_data', JSON.stringify(populationData));
-    } catch { }
+    } catch {}
   }, [populationData]);
 
   useEffect(() => {
     try {
-      localStorage.setItem('uochpulse_adm_data', JSON.stringify(admissionsData));
-    } catch { }
+      localStorage.setItem('uochpulse_adm_data_v2', JSON.stringify(admissionsData));
+    } catch {}
   }, [admissionsData]);
 
   // Determine active verification status (if all records are verified or synthetic)
@@ -252,8 +251,9 @@ export default function App() {
 
   return (
     <div
-      className={`min-h-screen ${darkMode ? 'dark bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'
-        } flex flex-col font-sans antialiased selection:bg-purple-600 selection:text-white transition-colors`}
+      className={`min-h-screen ${
+        darkMode ? 'dark bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'
+      } flex flex-col font-sans antialiased selection:bg-purple-600 selection:text-white transition-colors`}
     >
       {/* Top Navigation */}
       <Navbar
@@ -264,6 +264,7 @@ export default function App() {
         datasetStatus={activeDatasetStatus}
         onResetDemo={handleResetDemo}
         onOpenDocs={() => setIsDocsOpen(true)}
+        onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)}
         currentSessionUser={currentSessionUser}
         darkMode={darkMode}
         onToggleDarkMode={() => setDarkMode((prev) => !prev)}
@@ -311,6 +312,15 @@ export default function App() {
           />
         )}
 
+        {activeTab === 'ai-assistant' && (
+          <AskTheData
+            admissionsData={admissionsData}
+            populationData={populationData}
+            forecastResult={defaultForecast}
+            onOpenDevSettings={() => setIsDevSettingsOpen(true)}
+          />
+        )}
+
         {activeTab === 'admin' && (
           <AdminDashboard
             populationData={populationData}
@@ -336,6 +346,26 @@ export default function App() {
       {/* Documentation & Methodology Modal */}
       <DocumentationModal isOpen={isDocsOpen} onClose={() => setIsDocsOpen(false)} />
 
+      {/* AI Key Configuration Modal */}
+      <ApiKeyModal isOpen={isApiKeyModalOpen} onClose={() => setIsApiKeyModalOpen(false)} />
+
+      {/* Developer & AI Settings Sidebar */}
+      <DeveloperSettingsSidebar
+        isOpen={isDevSettingsOpen}
+        onClose={() => setIsDevSettingsOpen(false)}
+      />
+
+      {/* Floating Developer & AI Settings Trigger Button */}
+      <button
+        type="button"
+        onClick={() => setIsDevSettingsOpen(true)}
+        className="fixed bottom-5 right-5 z-40 px-3.5 py-2.5 rounded-full bg-slate-900 text-white dark:bg-purple-600 dark:hover:bg-purple-500 shadow-xl border border-slate-700/60 dark:border-purple-400/40 hover:scale-105 active:scale-95 transition cursor-pointer flex items-center space-x-2 text-xs font-bold"
+        title="Open Developer & AI Settings Sidebar"
+      >
+        <Sliders className="w-4 h-4 text-purple-400 dark:text-white" />
+        <span className="hidden sm:inline">AI Settings</span>
+      </button>
+
       {/* Platform Footer */}
       <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-6 text-xs text-slate-500 dark:text-slate-400">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -343,8 +373,12 @@ export default function App() {
             <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-900 ring-1 ring-cyan-500/50 shrink-0 flex items-center justify-center">
               <img
                 src={skylerOfficialLogo}
-                alt="AdmiMatrix logo"
+                alt="Official Logo"
                 className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = '/skyler_official_logo.jpg';
+                }}
               />
             </div>
             <div>

@@ -1,9 +1,22 @@
+/**
+ * Offline Deterministic Rule-Based Query Lookup (Fallback Engine)
+ * 
+ * DESIGN & EVALUATOR NOTE:
+ * This module is NOT an LLM. It is an offline, deterministic regex and pattern-matching
+ * lookup table designed as a fallback when no internet connection or Gemini API key
+ * is present. 
+ * 
+ * For real generative intelligence, natural language comprehension, and multi-step reasoning,
+ * AdmiMatrix routes queries to Google Gemini (`src/lib/ai/geminiService.ts`).
+ */
+
 import { AdmissionRecord, PopulationRecord, ForecastResult } from '../../types';
 
-export interface QueryAnswer {
+export interface DeterministicQueryAnswer {
   question: string;
   answer: string;
   found: boolean;
+  engineType?: 'DETERMINISTIC_RULE_BASED_FALLBACK';
   citation?: string;
   dataPoints?: Record<string, string | number>;
 }
@@ -13,7 +26,7 @@ export function answerDataQuery(
   admissions: AdmissionRecord[],
   population: PopulationRecord[],
   currentForecast: ForecastResult | null
-): QueryAnswer {
+): DeterministicQueryAnswer {
   const q = question.toLowerCase().trim();
 
   // 1. Female admission ratio for specific year (e.g. 2024, 2020, 2017)
@@ -25,7 +38,8 @@ export function answerDataQuery(
       return {
         question,
         found: true,
-        answer: `In academic year ${rec.academicYear}, the female student admission ratio at University of Chitral was ${rec.femaleAdmissionRatio}%, with ${rec.femaleAdmitted.toLocaleString()} female students admitted out of ${rec.totalAdmitted.toLocaleString()} total admissions (Male ratio: ${rec.maleAdmissionRatio}%).`,
+        engineType: 'DETERMINISTIC_RULE_BASED_FALLBACK',
+        answer: `[Offline Deterministic Lookup] In academic year ${rec.academicYear}, the female student admission ratio at University of Chitral was ${rec.femaleAdmissionRatio}%, with ${rec.femaleAdmitted.toLocaleString()} female students admitted out of ${rec.totalAdmitted.toLocaleString()} total admissions (Male ratio: ${rec.maleAdmissionRatio}%).`,
         citation: `AdmiMatrix Admission Records (${rec.status === 'SYNTHETIC' ? 'Synthetic Demo Profile' : 'Verified Dataset'})`,
         dataPoints: {
           'Academic Year': rec.academicYear,

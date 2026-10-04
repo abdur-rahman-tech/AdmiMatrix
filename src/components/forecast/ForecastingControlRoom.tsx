@@ -18,7 +18,10 @@ import {
   Layers,
   Info,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Languages,
+  RefreshCw,
+  Key
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -29,7 +32,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ReferenceLine
 } from 'recharts';
 import {
@@ -40,6 +42,9 @@ import {
   ForecastScenario
 } from '../../types';
 import { generateForecast } from '../../lib/ml/forecastingEngine';
+import { queryInstitutionalAI, getActiveApiKey, StructuredAiResponse } from '../../lib/ai/geminiService';
+import { ApiKeyModal } from '../ai/ApiKeyModal';
+import { AiBriefingSkeleton } from '../common/SkeletonLoader';
 
 interface ForecastingControlRoomProps {
   admissionsData: AdmissionRecord[];
@@ -60,6 +65,12 @@ interface ChartSeriesItem {
   femaleForecast?: number;
   totalLower95?: number;
   totalUpper95?: number;
+  femaleUpper95?: number;
+  femaleLower95?: number;
+  maleUpper95?: number;
+  maleLower95?: number;
+  optimisticForecast?: number;
+  pessimisticForecast?: number;
   // Ratios
   femaleRatioHistorical?: number;
   maleRatioHistorical?: number;
@@ -81,8 +92,15 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
   const [scenario, setScenario] = useState<ForecastScenario>('BASELINE');
   const [planningCapacity, setPlanningCapacity] = useState<number>(3000);
   const [viewMode, setViewMode] = useState<ViewMode>('HEADCOUNT');
+  const [cohortProjectionView, setCohortProjectionView] = useState<'FEMALE' | 'MALE' | 'TOTAL' | 'ALL'>('ALL');
   const [showPredictionBands, setShowPredictionBands] = useState<boolean>(true);
   const [isScorecardExpanded, setIsScorecardExpanded] = useState<boolean>(false);
+
+  // Live Gemini AI Briefing State
+  const [isAiGenerating, setIsAiGenerating] = useState<boolean>(false);
+  const [liveAiBriefing, setLiveAiBriefing] = useState<StructuredAiResponse | null>(null);
+  const [aiBriefingError, setAiBriefingError] = useState<string | null>(null);
+  const [isKeyModalOpen, setIsKeyModalOpen] = useState<boolean>(false);
 
   // Compute forecast dynamically with memoization
   const forecastResult: ForecastResult = useMemo(() => {
@@ -96,10 +114,47 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
     );
   }, [admissionsData, horizonYears, selectedModel, scenario, planningCapacity, populationData]);
 
+  const handleGenerateLiveAiBriefing = async () => {
+    const key = getActiveApiKey();
+    if (!key) {
+      setIsKeyModalOpen(true);
+      return;
+    }
+
+    setIsAiGenerating(true);
+    setAiBriefingError(null);
+
+    const prompt = `Provide an executive institutional planning briefing for the University of Chitral administration based on the currently selected ${forecastResult.modelName} forecast over ${forecastResult.horizonYears} years under the ${scenario} scenario. Specifically address whether projected demand exceeds the planning capacity of ${planningCapacity} seats, the gender parity trajectory, and key operational recommendations for the Vice Chancellor and Registrar.`;
+
+    try {
+      const result = await queryInstitutionalAI(
+        prompt,
+        admissionsData,
+        populationData,
+        forecastResult,
+        { preferredModel: 'gemini-3.8-flash' }
+      );
+      setLiveAiBriefing(result);
+    } catch (err: any) {
+      if (err?.message?.includes('MISSING_API_KEY')) {
+        setIsKeyModalOpen(true);
+      } else {
+        setAiBriefingError(err?.message || 'Error generating live AI briefing.');
+      }
+    } finally {
+      setIsAiGenerating(false);
+    }
+  };
+
   // Chronologically sorted historical data
   const sortedHistorical = useMemo(() => {
     return [...admissionsData].sort((a, b) => a.startYear - b.startYear);
   }, [admissionsData]);
+
+  // First capacity breach point if any
+  const firstCapacityBreach = useMemo(() => {
+    return forecastResult.predictions.find(p => p.isCapacityExceeded);
+  }, [forecastResult]);
 
   // Combined chart series with smooth bridge from last historical cycle
   const chartSeries = useMemo(() => {
@@ -114,6 +169,10 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
       femaleForecast: undefined,
       totalLower95: undefined,
       totalUpper95: undefined,
+      femaleUpper95: r.femaleAdmitted,
+      femaleLower95: r.femaleAdmitted,
+      maleUpper95: r.maleAdmitted,
+      maleLower95: r.maleAdmitted,
       femaleRatioHistorical: r.femaleAdmissionRatio,
       maleRatioHistorical: r.maleAdmissionRatio,
       femaleRatioForecast: undefined,
@@ -125,7 +184,7 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
 
     const lastHistorical = sortedHistorical[sortedHistorical.length - 1];
 
-    const forecastPoints: ChartSeriesItem[] = forecastResult.predictions.map(p => ({
+    const forecastPoints: ChartSeriesItem[] = forecastResult.predictions.map((p, idx) => ({
       academicYear: p.academicYear,
       isHistorical: false,
       totalHistorical: undefined,
@@ -136,6 +195,12 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
       femaleForecast: p.femaleAdmitted,
       totalLower95: p.totalLower95,
       totalUpper95: p.totalUpper95,
+      femaleUpper95: Math.round(p.totalUpper95 * (p.femaleRatio / 100)),
+      femaleLower95: Math.round(p.totalLower95 * (p.femaleRatio / 100)),
+      maleUpper95: Math.round(p.totalUpper95 * (p.maleRatio / 100)),
+      maleLower95: Math.round(p.totalLower95 * (p.maleRatio / 100)),
+      optimisticForecast: Math.round(p.totalAdmitted * Math.pow(1.04, idx + 1)),
+      pessimisticForecast: Math.round(p.totalAdmitted * Math.pow(0.96, idx + 1)),
       femaleRatioHistorical: undefined,
       maleRatioHistorical: undefined,
       femaleRatioForecast: p.femaleRatio,
@@ -155,6 +220,12 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
         femaleForecast: lastHistorical.femaleAdmitted,
         totalLower95: lastHistorical.totalAdmitted,
         totalUpper95: lastHistorical.totalAdmitted,
+        femaleUpper95: lastHistorical.femaleAdmitted,
+        femaleLower95: lastHistorical.femaleAdmitted,
+        maleUpper95: lastHistorical.maleAdmitted,
+        maleLower95: lastHistorical.maleAdmitted,
+        optimisticForecast: lastHistorical.totalAdmitted,
+        pessimisticForecast: lastHistorical.totalAdmitted,
         femaleRatioForecast: lastHistorical.femaleAdmissionRatio,
         maleRatioForecast: lastHistorical.maleAdmissionRatio,
         lowerBound95: lastHistorical.femaleAdmissionRatio,
@@ -428,25 +499,68 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
         </div>
       )}
 
+      {/* Capacity Threshold Alert Badge if breached */}
+      {firstCapacityBreach && viewMode === 'HEADCOUNT' && (
+        <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center space-x-2.5">
+            <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+            <p className="leading-relaxed">
+              <strong>Campus Seating Limit Breach:</strong> Projected demand exceeds capacity ({planningCapacity.toLocaleString()} seats) starting in AY <strong>{firstCapacityBreach.academicYear}</strong> ({firstCapacityBreach.totalAdmitted.toLocaleString()} students; +{(firstCapacityBreach.totalAdmitted - planningCapacity).toLocaleString()} seats deficit).
+            </p>
+          </div>
+          <span className="px-2.5 py-1 rounded-full bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100 font-mono font-bold text-[10px] shrink-0 self-start sm:self-auto">
+            Breach: AY {firstCapacityBreach.academicYear}
+          </span>
+        </div>
+      )}
+
       {/* Main Interactive Time-Series Chart */}
       <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
           <div>
             <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center space-x-2">
               <span>
                 {viewMode === 'HEADCOUNT'
-                  ? `Historical Student Enrollment vs. Projected Demand (${horizonYears} Academic Years)`
+                  ? `University Enrollment Projections by Student Cohort (${horizonYears} Academic Years)`
                   : `Historical Gender Proportions vs. Projected Ratios (${horizonYears} Academic Years)`}
               </span>
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Solid line: verified historical observations • Dashed line: statistical forecast • Shaded band: 95% prediction interval.
+              Pink: Female projection • Blue: Male projection • Purple: Total demand • Green: Optimistic (+4%) • Amber: Pessimistic (-4%) • Shaded: 95% PI.
             </p>
           </div>
 
-          <div className="flex items-center space-x-2 text-xs">
-            <span className="font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-              Model: {forecastResult.modelName}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Descriptive Legend Labels for Clear Understanding */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-pink-50 dark:bg-pink-950/40 border border-pink-200 dark:border-pink-800/60 text-xs font-semibold text-pink-700 dark:text-pink-300 shadow-xs">
+                <span className="w-2.5 h-2.5 rounded-full bg-pink-500 ring-2 ring-pink-200 dark:ring-pink-900 shrink-0" />
+                <span>Female Student Projection</span>
+              </div>
+
+              <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 text-xs font-semibold text-blue-700 dark:text-blue-300 shadow-xs">
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-500 ring-2 ring-blue-200 dark:ring-blue-900 shrink-0" />
+                <span>Male Student Projection</span>
+              </div>
+
+              <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 text-xs font-semibold text-purple-700 dark:text-purple-300 shadow-xs">
+                <span className="w-2.5 h-2.5 rounded-full bg-purple-500 ring-2 ring-purple-200 dark:ring-purple-900 shrink-0" />
+                <span>Total Admission Projection</span>
+              </div>
+
+              <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-xs font-semibold text-emerald-700 dark:text-emerald-300 shadow-xs">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200 dark:ring-emerald-900 shrink-0" />
+                <span>Optimistic (+4%)</span>
+              </div>
+
+              <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-xs font-semibold text-amber-700 dark:text-amber-300 shadow-xs">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-amber-200 dark:ring-amber-900 shrink-0" />
+                <span>Pessimistic (-4%)</span>
+              </div>
+            </div>
+
+            <span className="font-mono px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs hidden sm:inline-block">
+              {forecastResult.modelName}
             </span>
           </div>
         </div>
@@ -492,10 +606,16 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
                     maleHistorical: 'Male Admitted (Historical)',
                     femaleHistorical: 'Female Admitted (Historical)',
                     totalForecast: 'Projected Total Demand',
-                    maleForecast: 'Projected Male Enrollment',
-                    femaleForecast: 'Projected Female Enrollment',
+                    maleForecast: 'Projected Male Demand',
+                    femaleForecast: 'Projected Female Demand',
                     totalUpper95: 'Total Upper Bound (95% PI)',
                     totalLower95: 'Total Lower Bound (95% PI)',
+                    femaleUpper95: 'Female Upper Bound (95% PI)',
+                    femaleLower95: 'Female Lower Bound (95% PI)',
+                    maleUpper95: 'Male Upper Bound (95% PI)',
+                    maleLower95: 'Male Lower Bound (95% PI)',
+                    optimisticForecast: 'Optimistic Scenario (+4%/yr)',
+                    pessimisticForecast: 'Pessimistic Scenario (-4%/yr)',
                     femaleRatioHistorical: 'Female Ratio (Historical)',
                     maleRatioHistorical: 'Male Ratio (Historical)',
                     femaleRatioForecast: 'Projected Female Ratio',
@@ -514,28 +634,8 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
                 labelFormatter={l => `Academic Year: ${l}`}
               />
 
-              <Legend
-                verticalAlign="top"
-                height={36}
-                formatter={v => {
-                  const titles: Record<string, string> = {
-                    totalHistorical: 'Historical Total',
-                    maleHistorical: 'Historical Male',
-                    femaleHistorical: 'Historical Female',
-                    totalForecast: 'Projected Total Demand',
-                    maleForecast: 'Projected Male Demand',
-                    femaleForecast: 'Projected Female Demand',
-                    femaleRatioHistorical: 'Historical Female %',
-                    maleRatioHistorical: 'Historical Male %',
-                    femaleRatioForecast: 'Projected Female %',
-                    maleRatioForecast: 'Projected Male %'
-                  };
-                  return titles[v] || v;
-                }}
-              />
-
               {/* Planning Capacity Reference Line (Headcount view only) */}
-              {viewMode === 'HEADCOUNT' && (
+              {viewMode === 'HEADCOUNT' && (cohortProjectionView === 'TOTAL' || cohortProjectionView === 'ALL') && (
                 <ReferenceLine
                   y={planningCapacity}
                   stroke="#f59e0b"
@@ -554,121 +654,181 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
               {showPredictionBands && (
                 <Area
                   type="monotone"
-                  dataKey={viewMode === 'HEADCOUNT' ? 'totalUpper95' : 'upperBound95'}
+                  dataKey={
+                    viewMode === 'RATIO'
+                      ? 'upperBound95'
+                      : cohortProjectionView === 'FEMALE'
+                      ? 'femaleUpper95'
+                      : cohortProjectionView === 'MALE'
+                      ? 'maleUpper95'
+                      : 'totalUpper95'
+                  }
                   stroke="none"
-                  fill="#9333ea"
-                  fillOpacity={0.12}
-                  name={viewMode === 'HEADCOUNT' ? 'totalUpper95' : 'upperBound95'}
+                  fill={
+                    cohortProjectionView === 'FEMALE'
+                      ? '#ec4899'
+                      : cohortProjectionView === 'MALE'
+                      ? '#3b82f6'
+                      : '#9333ea'
+                  }
+                  fillOpacity={0.14}
+                  name="predictionInterval95"
+                  legendType="none"
                 />
               )}
 
               {/* HEADCOUNT VIEW LINES */}
               {viewMode === 'HEADCOUNT' && (
                 <>
-                  {/* Historical Solid Lines */}
-                  <Line
-                    type="monotone"
-                    dataKey="totalHistorical"
-                    stroke="#9333ea"
-                    strokeWidth={3}
-                    dot={{ r: 4, fill: '#9333ea', stroke: '#fff', strokeWidth: 1.5 }}
-                    name="totalHistorical"
-                    connectNulls={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="femaleHistorical"
-                    stroke="#ec4899"
-                    strokeWidth={2}
-                    dot={{ r: 3, fill: '#ec4899' }}
-                    name="femaleHistorical"
-                    connectNulls={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="maleHistorical"
-                    stroke="#3b82f6"
-                    strokeWidth={2}
-                    dot={{ r: 3, fill: '#3b82f6' }}
-                    name="maleHistorical"
-                    connectNulls={false}
-                  />
+                  {/* FEMALE PROJECTION GRAPH */}
+                  {(cohortProjectionView === 'FEMALE' || cohortProjectionView === 'ALL') && (
+                    <>
+                      <Line
+                        type="monotone"
+                        dataKey="femaleHistorical"
+                        stroke="#ec4899"
+                        strokeWidth={cohortProjectionView === 'FEMALE' ? 3.5 : 2}
+                        dot={{ r: 4, fill: '#ec4899', stroke: '#fff', strokeWidth: 1.5 }}
+                        name="femaleHistorical"
+                        connectNulls={false}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="femaleForecast"
+                        stroke="#be185d"
+                        strokeWidth={cohortProjectionView === 'FEMALE' ? 3.5 : 2}
+                        strokeDasharray="6 4"
+                        dot={{ r: 5, fill: '#be185d', stroke: '#fff', strokeWidth: 2 }}
+                        name="femaleForecast"
+                        connectNulls={false}
+                      />
+                    </>
+                  )}
 
-                  {/* Forecast Dashed Lines */}
-                  <Line
-                    type="monotone"
-                    dataKey="totalForecast"
-                    stroke="#9333ea"
-                    strokeWidth={3}
-                    strokeDasharray="6 4"
-                    dot={{ r: 4, fill: '#9333ea' }}
-                    name="totalForecast"
-                    connectNulls={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="femaleForecast"
-                    stroke="#ec4899"
-                    strokeWidth={2}
-                    strokeDasharray="4 4"
-                    dot={{ r: 3, fill: '#ec4899' }}
-                    name="femaleForecast"
-                    connectNulls={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="maleForecast"
-                    stroke="#3b82f6"
-                    strokeWidth={2}
-                    strokeDasharray="4 4"
-                    dot={{ r: 3, fill: '#3b82f6' }}
-                    name="maleForecast"
-                    connectNulls={false}
-                  />
+                  {/* MALE PROJECTION GRAPH */}
+                  {(cohortProjectionView === 'MALE' || cohortProjectionView === 'ALL') && (
+                    <>
+                      <Line
+                        type="monotone"
+                        dataKey="maleHistorical"
+                        stroke="#3b82f6"
+                        strokeWidth={cohortProjectionView === 'MALE' ? 3.5 : 2}
+                        dot={{ r: 4, fill: '#3b82f6', stroke: '#fff', strokeWidth: 1.5 }}
+                        name="maleHistorical"
+                        connectNulls={false}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="maleForecast"
+                        stroke="#1d4ed8"
+                        strokeWidth={cohortProjectionView === 'MALE' ? 3.5 : 2}
+                        strokeDasharray="6 4"
+                        dot={{ r: 5, fill: '#1d4ed8', stroke: '#fff', strokeWidth: 2 }}
+                        name="maleForecast"
+                        connectNulls={false}
+                      />
+                    </>
+                  )}
+
+                  {/* TOTAL ADMISSION PROJECTION GRAPH */}
+                  {(cohortProjectionView === 'TOTAL' || cohortProjectionView === 'ALL') && (
+                    <>
+                      <Line
+                        type="monotone"
+                        dataKey="totalHistorical"
+                        stroke="#9333ea"
+                        strokeWidth={3}
+                        dot={{ r: 4, fill: '#9333ea', stroke: '#fff', strokeWidth: 1.5 }}
+                        name="totalHistorical"
+                        connectNulls={false}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="totalForecast"
+                        stroke="#7e22ce"
+                        strokeWidth={3}
+                        strokeDasharray="6 4"
+                        dot={{ r: 4, fill: '#7e22ce', stroke: '#fff', strokeWidth: 1.5 }}
+                        name="totalForecast"
+                        connectNulls={false}
+                      />
+
+                      {/* Scenario Envelope Lines (Optimistic & Pessimistic) */}
+                      <Line
+                        type="monotone"
+                        dataKey="optimisticForecast"
+                        stroke="#10b981"
+                        strokeWidth={1.5}
+                        strokeDasharray="3 3"
+                        dot={false}
+                        name="optimisticForecast"
+                        connectNulls={false}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="pessimisticForecast"
+                        stroke="#f59e0b"
+                        strokeWidth={1.5}
+                        strokeDasharray="3 3"
+                        dot={false}
+                        name="pessimisticForecast"
+                        connectNulls={false}
+                      />
+                    </>
+                  )}
                 </>
               )}
 
               {/* RATIO VIEW LINES */}
               {viewMode === 'RATIO' && (
                 <>
-                  <Line
-                    type="monotone"
-                    dataKey="femaleRatioHistorical"
-                    stroke="#ec4899"
-                    strokeWidth={3}
-                    dot={{ r: 4, fill: '#ec4899', stroke: '#fff', strokeWidth: 1.5 }}
-                    name="femaleRatioHistorical"
-                    connectNulls={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="maleRatioHistorical"
-                    stroke="#3b82f6"
-                    strokeWidth={3}
-                    dot={{ r: 4, fill: '#3b82f6', stroke: '#fff', strokeWidth: 1.5 }}
-                    name="maleRatioHistorical"
-                    connectNulls={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="femaleRatioForecast"
-                    stroke="#ec4899"
-                    strokeWidth={3}
-                    strokeDasharray="5 5"
-                    dot={{ r: 4, fill: '#ec4899' }}
-                    name="femaleRatioForecast"
-                    connectNulls={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="maleRatioForecast"
-                    stroke="#3b82f6"
-                    strokeWidth={3}
-                    strokeDasharray="5 5"
-                    dot={{ r: 4, fill: '#3b82f6' }}
-                    name="maleRatioForecast"
-                    connectNulls={false}
-                  />
+                  {(cohortProjectionView === 'FEMALE' || cohortProjectionView === 'ALL' || cohortProjectionView === 'TOTAL') && (
+                    <>
+                      <Line
+                        type="monotone"
+                        dataKey="femaleRatioHistorical"
+                        stroke="#ec4899"
+                        strokeWidth={3}
+                        dot={{ r: 4, fill: '#ec4899', stroke: '#fff', strokeWidth: 1.5 }}
+                        name="femaleRatioHistorical"
+                        connectNulls={false}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="femaleRatioForecast"
+                        stroke="#be185d"
+                        strokeWidth={3}
+                        strokeDasharray="5 5"
+                        dot={{ r: 4, fill: '#be185d' }}
+                        name="femaleRatioForecast"
+                        connectNulls={false}
+                      />
+                    </>
+                  )}
+
+                  {(cohortProjectionView === 'MALE' || cohortProjectionView === 'ALL' || cohortProjectionView === 'TOTAL') && (
+                    <>
+                      <Line
+                        type="monotone"
+                        dataKey="maleRatioHistorical"
+                        stroke="#3b82f6"
+                        strokeWidth={3}
+                        dot={{ r: 4, fill: '#3b82f6', stroke: '#fff', strokeWidth: 1.5 }}
+                        name="maleRatioHistorical"
+                        connectNulls={false}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="maleRatioForecast"
+                        stroke="#1d4ed8"
+                        strokeWidth={3}
+                        strokeDasharray="5 5"
+                        dot={{ r: 4, fill: '#1d4ed8' }}
+                        name="maleRatioForecast"
+                        connectNulls={false}
+                      />
+                    </>
+                  )}
                 </>
               )}
             </ComposedChart>
@@ -974,15 +1134,129 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
         </div>
       )}
 
-      {/* Institutional Decision-Support Grounded Summary */}
-      <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
-        <div className="flex items-center space-x-2">
-          <ShieldAlert className="w-4 h-4 text-amber-500" />
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-            Decision-Support Planning Guidance &amp; Institutional Bounds
-          </h3>
+      {/* Institutional Decision-Support Grounded Summary & Live Gemini AI Briefing */}
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center space-x-2">
+            <ShieldAlert className="w-5 h-5 text-amber-500" />
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                Decision-Support Planning Guidance &amp; Live AI Briefing
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Deterministic mathematical baseline paired with real-time Google Gemini 2.5 intelligence.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleGenerateLiveAiBriefing}
+            disabled={isAiGenerating}
+            className="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs transition cursor-pointer shadow-xs active:scale-95 disabled:opacity-50 shrink-0"
+          >
+            {isAiGenerating ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <span>Generating Live Briefing...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Generate Live Gemini Briefing</span>
+              </>
+            )}
+          </button>
         </div>
 
+        {/* Shimmery Skeleton Loader while AI Briefing is generating */}
+        {isAiGenerating && (
+          <div className="pt-2">
+            <AiBriefingSkeleton />
+          </div>
+        )}
+
+        {/* Live Gemini AI Briefing Output (When Generated) */}
+        {!isAiGenerating && liveAiBriefing && (
+          <div className="p-5 rounded-2xl bg-purple-50/60 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/80 space-y-4 transition-all">
+            <div className="flex items-center justify-between pb-2 border-b border-purple-200/60 dark:border-purple-900/60">
+              <span className="text-xs font-bold text-purple-900 dark:text-purple-200 flex items-center space-x-1.5 uppercase tracking-wider">
+                <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                <span>Live Gemini Executive Synthesis</span>
+              </span>
+              <div className="flex items-center space-x-2 text-[10px] font-mono">
+                <span className="px-2 py-0.5 rounded bg-purple-200 dark:bg-purple-900 text-purple-800 dark:text-purple-200 font-bold">
+                  {liveAiBriefing.meta.modelUsed}
+                </span>
+                <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 font-bold">
+                  {liveAiBriefing.meta.latencyMs}ms
+                </span>
+              </div>
+            </div>
+
+            <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
+              {liveAiBriefing.executiveAnswer}
+            </p>
+
+            {liveAiBriefing.urduTranslation && (
+              <div className="p-3.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-purple-200 dark:border-purple-900 space-y-1">
+                <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 flex items-center space-x-1">
+                  <Languages className="w-3.5 h-3.5" />
+                  <span>اردو خلاصہ (Urdu Regional Briefing)</span>
+                </span>
+                <p dir="rtl" className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 font-serif leading-loose">
+                  {liveAiBriefing.urduTranslation}
+                </p>
+              </div>
+            )}
+
+            {/* Evidence vs Hypotheses Dual Card */}
+            {(liveAiBriefing.verifiedEvidence?.length > 0 || liveAiBriefing.hypotheses?.length > 0) && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                {liveAiBriefing.verifiedEvidence?.length > 0 && (
+                  <div className="p-3.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 space-y-1.5">
+                    <span className="text-[11px] font-bold text-emerald-900 dark:text-emerald-200 uppercase tracking-wider flex items-center space-x-1">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Verified Evidence Grounding</span>
+                    </span>
+                    <ul className="text-xs text-emerald-950 dark:text-emerald-200 space-y-1">
+                      {liveAiBriefing.verifiedEvidence.map((ev, i) => (
+                        <li key={i} className="leading-snug">• {ev.fact}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {liveAiBriefing.hypotheses?.length > 0 && (
+                  <div className="p-3.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/60 space-y-1.5">
+                    <span className="text-[11px] font-bold text-blue-900 dark:text-blue-200 uppercase tracking-wider flex items-center space-x-1">
+                      <Brain className="w-3.5 h-3.5 text-blue-600" />
+                      <span>Forecast Planning Hypotheses</span>
+                    </span>
+                    <ul className="text-xs text-blue-950 dark:text-blue-200 space-y-1">
+                      {liveAiBriefing.hypotheses.map((hyp, i) => (
+                        <li key={i} className="leading-snug">• <strong>{hyp.statement}</strong> ({hyp.impact})</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="pt-2 text-xs text-purple-950 dark:text-purple-200 font-medium">
+              <strong>Strategic Recommendation: </strong>
+              <span>{liveAiBriefing.planningRecommendation}</span>
+            </div>
+          </div>
+        )}
+
+        {aiBriefingError && (
+          <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-xs">
+            {aiBriefingError}
+          </div>
+        )}
+
+        {/* Statistical Baseline Narrative */}
         <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
           Based on verified historical admissions from {forecastResult.historicalPeriod}, the selected{' '}
           <strong>{forecastResult.modelName}</strong> estimates total student enrollment will reach approximately{' '}
@@ -1030,6 +1304,13 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
           </ul>
         </div>
       </div>
+
+      {/* API Key Modal for Judges */}
+      <ApiKeyModal
+        isOpen={isKeyModalOpen}
+        onClose={() => setIsKeyModalOpen(false)}
+        onKeySaved={handleGenerateLiveAiBriefing}
+      />
     </div>
   );
 };

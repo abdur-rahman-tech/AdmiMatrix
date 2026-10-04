@@ -20,7 +20,6 @@ import {
   Sparkles
 } from 'lucide-react';
 import { AdminUser, AccessRequest, UserRole } from '../../types';
-import admimatrixOfficialLogo from '../../assets';
 
 interface AdminAccessGateProps {
   adminUsers: AdminUser[];
@@ -224,9 +223,13 @@ export const AdminAccessGate: React.FC<AdminAccessGateProps> = ({
         <div className="bg-gradient-to-r from-slate-950 via-purple-950 to-slate-900 p-6 text-white text-center relative">
           <div className="w-16 h-16 mx-auto rounded-2xl overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 ring-2 ring-cyan-500/60 shadow-md mb-3 flex items-center justify-center">
             <img
-              src={admimatrixOfficialLogo}
-              alt="AdmiMatrix logo"
+              src="/skyler_official_logo.jpg"
+              alt="Official Logo"
               className="w-full h-full object-cover"
+              referrerPolicy="no-referrer"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/uoch-logo.png';
+              }}
             />
           </div>
 
@@ -258,10 +261,11 @@ export const AdminAccessGate: React.FC<AdminAccessGateProps> = ({
               setActiveMode('PIN');
               setPinError(null);
             }}
-            className={`py-3 text-center transition-all duration-200 ease-out hover:-translate-y-0.5 active:scale-95 flex items-center justify-center space-x-1.5 cursor-pointer ${activeMode === 'PIN'
-              ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 font-bold border-b-2 border-purple-600 dark:border-purple-400'
-              : 'text-slate-600 dark:text-slate-400 hover:text-purple-600 dark:hover:text-white'
-              }`}
+            className={`py-3 text-center transition-all duration-200 ease-out hover:-translate-y-0.5 active:scale-95 flex items-center justify-center space-x-1.5 cursor-pointer ${
+              activeMode === 'PIN'
+                ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 font-bold border-b-2 border-purple-600 dark:border-purple-400'
+                : 'text-slate-600 dark:text-slate-400 hover:text-purple-600 dark:hover:text-white'
+            }`}
           >
             <KeyRound className="w-3.5 h-3.5" />
             <span>Enter PIN</span>
@@ -272,10 +276,11 @@ export const AdminAccessGate: React.FC<AdminAccessGateProps> = ({
               setActiveMode('REQUEST');
               setReqSuccess(false);
             }}
-            className={`py-3 text-center transition-all duration-200 ease-out hover:-translate-y-0.5 active:scale-95 flex items-center justify-center space-x-1.5 cursor-pointer relative ${activeMode === 'REQUEST'
-              ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 font-bold border-b-2 border-purple-600 dark:border-purple-400'
-              : 'text-slate-600 dark:text-slate-400 hover:text-purple-600 dark:hover:text-white'
-              }`}
+            className={`py-3 text-center transition-all duration-200 ease-out hover:-translate-y-0.5 active:scale-95 flex items-center justify-center space-x-1.5 cursor-pointer relative ${
+              activeMode === 'REQUEST'
+                ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 font-bold border-b-2 border-purple-600 dark:border-purple-400'
+                : 'text-slate-600 dark:text-slate-400 hover:text-purple-600 dark:hover:text-white'
+            }`}
           >
             <UserPlus className="w-3.5 h-3.5" />
             <span>Request Access</span>
@@ -289,10 +294,11 @@ export const AdminAccessGate: React.FC<AdminAccessGateProps> = ({
               setActiveMode('GMAIL');
               setGmailError(null);
             }}
-            className={`py-3 text-center transition-all duration-200 ease-out hover:-translate-y-0.5 active:scale-95 flex items-center justify-center space-x-1.5 cursor-pointer ${activeMode === 'GMAIL'
-              ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 font-bold border-b-2 border-purple-600 dark:border-purple-400'
-              : 'text-slate-600 dark:text-slate-400 hover:text-purple-600 dark:hover:text-white'
-              }`}
+            className={`py-3 text-center transition-all duration-200 ease-out hover:-translate-y-0.5 active:scale-95 flex items-center justify-center space-x-1.5 cursor-pointer ${
+              activeMode === 'GMAIL'
+                ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 font-bold border-b-2 border-purple-600 dark:border-purple-400'
+                : 'text-slate-600 dark:text-slate-400 hover:text-purple-600 dark:hover:text-white'
+            }`}
           >
             <Mail className="w-3.5 h-3.5" />
             <span>Gmail + PIN</span>
@@ -305,7 +311,7 @@ export const AdminAccessGate: React.FC<AdminAccessGateProps> = ({
             <div className="flex items-center justify-between mb-1.5">
               <span className="font-bold flex items-center space-x-1.5 text-purple-700 dark:text-purple-300">
                 <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                <span>Authorized Administrator PIN Keys</span>
+                <span>Authorized Owner (Admin) PIN Key</span>
               </span>
               <span className="text-[10px] text-slate-500 dark:text-slate-400">Click to autofill</span>
             </div>
@@ -313,29 +319,15 @@ export const AdminAccessGate: React.FC<AdminAccessGateProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  setPinInput('7879');
+                  setPinInput('7860');
                   setPinError(null);
                   setActiveMode('PIN');
                 }}
                 className="px-2.5 py-1 rounded-lg bg-white dark:bg-purple-900/60 border border-purple-300 dark:border-purple-700 text-xs font-mono font-bold text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900 transition flex items-center space-x-1 cursor-pointer"
               >
-                <span>Owner:</span>
-                <span className="text-emerald-700 dark:text-emerald-400">NIC</span>
+                <span>Owner (Admin):</span>
+                <span className="text-emerald-700 dark:text-emerald-400">7860</span>
                 <span className="text-[10px] text-slate-500 font-sans font-normal">(Abdur Rahman)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setPinInput('4321');
-                  setPinError(null);
-                  setActiveMode('PIN');
-                }}
-                className="px-2.5 py-1 rounded-lg bg-white dark:bg-purple-900/60 border border-purple-300 dark:border-purple-700 text-xs font-mono font-bold text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900 transition flex items-center space-x-1 cursor-pointer"
-              >
-                <span>Admin:</span>
-                <span className="text-blue-700 dark:text-blue-400">NIC2</span>
-                <span className="text-[10px] text-slate-500 font-sans font-normal">(Prof. Inam)</span>
               </button>
             </div>
           </div>

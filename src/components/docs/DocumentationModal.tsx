@@ -1,6 +1,5 @@
 import React from 'react';
 import { X, BookOpen, FileText, CheckCircle2, ShieldAlert, Brain, Database, Award } from 'lucide-react';
-import admimatrixOfficialLogo from '../../assets';
 
 interface DocumentationModalProps {
   isOpen: boolean;
@@ -18,9 +17,10 @@ export const DocumentationModal: React.FC<DocumentationModalProps> = ({ isOpen, 
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-full overflow-hidden bg-purple-900/20 ring-2 ring-purple-500/40 shrink-0">
               <img
-                src={admimatrixOfficialLogo}
-                alt="AdmiMatrix logo"
+                src="/uoch-logo.png"
+                alt="University of Chitral Logo"
                 className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
               />
             </div>
             <div>
