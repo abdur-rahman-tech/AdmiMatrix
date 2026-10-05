@@ -15,6 +15,7 @@ export interface SourceCitationItem {
   type: string;
   detail: string;
   verified: boolean;
+  url?: string;
 }
 
 export interface StructuredAiResponse {
