@@ -67,28 +67,31 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     <div id="dashboard-overview-container" className="space-y-6">
       {/* Clean, Simple Executive Header */}
       <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center space-x-4">
-          <div className="w-14 h-14 rounded-xl overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 ring-2 ring-cyan-500/60 shadow-xs shrink-0 flex items-center justify-center">
+        <div className="flex items-center space-x-4 group cursor-pointer" onClick={() => onNavigate('overview')}>
+          <div className="relative w-14 h-14 rounded-2xl overflow-hidden bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 ring-2 ring-purple-500/50 group-hover:ring-purple-400 shadow-md group-hover:shadow-lg group-hover:shadow-purple-500/25 shrink-0 flex items-center justify-center transition-all duration-300 transform group-hover:scale-105 group-hover:-translate-y-0.5">
             <img
               id="admimatrix-overview-logo"
               src={skylerOfficialLogo}
-              alt="Official Logo"
-              className="w-full h-full object-cover"
+              alt="AdmiMatrix Official Logo"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
               referrerPolicy="no-referrer"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = '/logo.jpg';
               }}
             />
+            {/* Specular sheen animation */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
                 AdmiMatrix
               </h1>
               <span className="text-xs text-slate-400 dark:text-slate-500 hidden sm:inline">·</span>
               <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hidden sm:inline">
                 Chitral Institutional Intelligence
               </span>
+              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="System Operational" />
             </div>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
               Chitral Demographics, Admissions Analytics &amp; 5-Year Projection Matrix
@@ -99,10 +102,10 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         <div className="flex items-center space-x-2 shrink-0">
           <button
             onClick={() => onNavigate('forecast')}
-            className="px-3.5 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold transition-all duration-150 ease-out cursor-pointer flex items-center space-x-1.5 shadow-xs active:scale-95"
+            className="group px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all duration-200 ease-out cursor-pointer flex items-center space-x-2 shadow-sm hover:shadow-md hover:shadow-purple-500/30 hover:-translate-y-0.5 active:scale-95"
           >
-            <Brain className="w-3.5 h-3.5" />
-            <span>5-Year Forecast</span>
+            <Brain className="w-4 h-4 transition-transform duration-200 group-hover:rotate-12 group-hover:scale-110" />
+            <span>5-Year Forecast Room</span>
           </button>
         </div>
       </div>
@@ -344,19 +347,19 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
         <div
           onClick={() => onNavigate('ai-assistant')}
-          className="p-5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs hover:border-orange-400 dark:hover:border-orange-500 hover:shadow-md hover:-translate-y-1 active:scale-[0.99] transition-all duration-300 ease-out cursor-pointer group"
+          className="p-5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs hover:border-amber-400 dark:hover:border-amber-500 hover:shadow-md hover:-translate-y-1 active:scale-[0.99] transition-all duration-300 ease-out cursor-pointer group"
         >
           <div className="flex items-center justify-between">
-            <div className="p-2.5 rounded-lg bg-orange-50 text-orange-600 dark:bg-orange-950/60 dark:text-orange-400 transition-all duration-300 ease-out group-hover:scale-110 group-hover:bg-orange-100 dark:group-hover:bg-orange-900/60 group-hover:shadow-xs">
+            <div className="p-2.5 rounded-lg bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-400 transition-all duration-300 ease-out group-hover:scale-110 group-hover:bg-purple-100 dark:group-hover:bg-purple-900/60 group-hover:shadow-xs">
               <Sparkles className="w-5 h-5 transition-transform duration-300 group-hover:rotate-3" />
             </div>
-            <ArrowRight className="w-4 h-4 text-slate-400 transition-all duration-300 ease-out group-hover:text-orange-600 dark:group-hover:text-orange-400 group-hover:translate-x-1.5" />
+            <ArrowRight className="w-4 h-4 text-slate-400 transition-all duration-300 ease-out group-hover:text-purple-600 dark:group-hover:text-purple-400 group-hover:translate-x-1.5" />
           </div>
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white mt-3.5 transition-colors duration-200 group-hover:text-orange-600 dark:group-hover:text-orange-400">
-            Ask AI Assistant
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white mt-3.5 transition-colors duration-200 group-hover:text-purple-600 dark:group-hover:text-purple-400">
+            Ask AI &amp; Vision
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 transition-colors duration-200 group-hover:text-slate-700 dark:group-hover:text-slate-300">
-            Evidence-grounded Groq LPU institutional intelligence &amp; demographic reasoning.
+            Evidence-grounded Groq LPU intelligence &amp; gazette scanner.
           </p>
         </div>
       </div>

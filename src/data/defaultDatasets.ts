@@ -252,7 +252,7 @@ export const INITIAL_ADMISSION_DATA: AdmissionRecord[] = [
     femaleAdmissionRatio: 34.50,
     sourceId: 'src-uoch-official',
     status: 'VERIFIED',
-    notes: 'Official University admission records validated by academic department. Severe enrollment trough (79 female admitted) caused by July–August 2022 catastrophic monsoon floods (68 bridges/50km roads destroyed), KP provincial university grant freeze, steep fee increases, and acute hostel/transport collapse.'
+    notes: 'In 2022, students organized a culture night event at University of Chitral. Because of this event, the public of Chitral criticized the university, citing that male and female students enjoy together in the culture night is not in accordance with local cultural and traditional values. Consequently, parents refused to give permission to students for getting admission in the university, precipitating a severe enrollment trough (total admitted dropped to 229, with female enrollment falling to 79). This institutional shock was compounded by the catastrophic July–August 2022 monsoon floods (68 bridges and 50km of roads destroyed), KP provincial university grant freeze, fee hikes, and acute hostel/transport collapse.'
   },
   {
     id: 'adm-2023',

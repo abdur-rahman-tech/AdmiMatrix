@@ -221,16 +221,17 @@ export const AdminAccessGate: React.FC<AdminAccessGateProps> = ({
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
         {/* Top Header Badge */}
         <div className="bg-gradient-to-r from-slate-950 via-purple-950 to-slate-900 p-6 text-white text-center relative">
-          <div className="w-16 h-16 mx-auto rounded-2xl overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 ring-2 ring-cyan-500/60 shadow-md mb-3 flex items-center justify-center">
+          <div className="group relative w-16 h-16 mx-auto rounded-2xl overflow-hidden bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 ring-2 ring-purple-500/60 group-hover:ring-purple-400 shadow-lg group-hover:shadow-purple-500/30 mb-3 flex items-center justify-center transition-all duration-300 transform hover:scale-110 hover:-translate-y-0.5 cursor-pointer">
             <img
               src="/logo.jpg"
-              alt="Official Logo"
-              className="w-full h-full object-cover"
+              alt="AdmiMatrix Official Logo"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
               referrerPolicy="no-referrer"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = '/logo.jpg';
+                (e.target as HTMLImageElement).src = '/uoch-logo.png';
               }}
             />
+            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
           </div>
 
           <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-rose-500/20 text-rose-300 text-xs font-bold border border-rose-500/30 mb-2">

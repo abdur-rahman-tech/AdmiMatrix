@@ -28,12 +28,14 @@ import {
   AuditLog,
   UserRole,
   AdminUser,
-  AccessRequest
+  AccessRequest,
+  ForecastResult
 } from '../../types';
 import { AdminAccessGate } from './AdminAccessGate';
 import { PopulationCRUD } from './PopulationCRUD';
 import { AdmissionsCRUD } from './AdmissionsCRUD';
 import { UserAccessManager } from './UserAccessManager';
+import { DatabaseMemoryManager } from './DatabaseMemoryManager';
 
 interface AdminDashboardProps {
   populationData: PopulationRecord[];
@@ -52,6 +54,7 @@ interface AdminDashboardProps {
   currentSessionUser: AdminUser | null;
   setCurrentSessionUser: (user: AdminUser | null) => void;
   onUpdateUserPin: (email: string, newPin: string) => void;
+  forecastResult?: ForecastResult;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -70,7 +73,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   setAccessRequests,
   currentSessionUser,
   setCurrentSessionUser,
-  onUpdateUserPin
+  onUpdateUserPin,
+  forecastResult
 }) => {
   // If not logged in, show Owner Security Gate
   if (!currentSessionUser) {
@@ -119,7 +123,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   }
 
   // Authenticated Dashboard Navigation Tabs
-  const [activeMainTab, setActiveMainTab] = useState<'POPULATION' | 'ADMISSIONS' | 'GOVERNANCE' | 'AUDIT'>('POPULATION');
+  const [activeMainTab, setActiveMainTab] = useState<'POPULATION' | 'ADMISSIONS' | 'GOVERNANCE' | 'AUDIT' | 'DATABASE'>('POPULATION');
 
   const pendingCount = accessRequests.filter(r => r.status === 'PENDING').length;
 
@@ -127,17 +131,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     <div id="admin-dashboard-container" className="space-y-6">
       {/* AUTHENTICATED OWNER SESSION HEADER */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center space-x-3.5">
-          <div className="w-12 h-12 rounded-xl overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 ring-2 ring-cyan-500/60 shrink-0 shadow-xs flex items-center justify-center">
+        <div className="flex items-center space-x-3.5 group cursor-default">
+          <div className="group relative w-12 h-12 rounded-xl overflow-hidden bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 ring-2 ring-purple-500/60 group-hover:ring-purple-400 shrink-0 shadow-md group-hover:shadow-purple-500/25 flex items-center justify-center transition-all duration-300 transform group-hover:scale-105 group-hover:-translate-y-0.5">
             <img
               src="/logo.jpg"
-              alt="Official Logo"
-              className="w-full h-full object-cover"
+              alt="AdmiMatrix Official Logo"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
               referrerPolicy="no-referrer"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = '/logo.jpg';
+                (e.target as HTMLImageElement).src = '/uoch-logo.png';
               }}
             />
+            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
           </div>
           <div>
             <div className="flex items-center space-x-2">
@@ -284,6 +289,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <History className="w-4 h-4" />
           <span>Audit Logs ({auditLogs.length})</span>
         </button>
+
+        {/* Tab 5: Institutional Database & Memory Engine */}
+        <button
+          onClick={() => setActiveMainTab('DATABASE')}
+          className={`pb-2.5 px-2 flex items-center space-x-2 transition-all duration-200 ease-out hover:-translate-y-0.5 active:scale-95 border-b-2 whitespace-nowrap cursor-pointer ${
+            activeMainTab === 'DATABASE'
+              ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400 font-bold'
+              : 'border-transparent text-slate-500 hover:text-emerald-600 dark:hover:text-white'
+          }`}
+        >
+          <Database className="w-4 h-4 text-emerald-600" />
+          <span>Database &amp; Memory Engine</span>
+          <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold">
+            DB
+          </span>
+        </button>
       </div>
 
       {/* TAB CONTENT 1: CHITRAL POPULATION MASTER CRUD */}
@@ -395,6 +416,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* TAB CONTENT 5: INSTITUTIONAL DATABASE & MEMORY ENGINE */}
+      {activeMainTab === 'DATABASE' && (
+        <DatabaseMemoryManager
+          admissionsData={admissionsData}
+          populationData={populationData}
+          forecastResult={forecastResult}
+          onRestoreData={(adms, pops) => {
+            setAdmissionsData(adms);
+            setPopulationData(pops);
+            const audit: AuditLog = {
+              id: `audit-${Date.now()}`,
+              timestamp: new Date().toISOString(),
+              user: currentSessionUser.name,
+              role: currentSessionUser.role,
+              action: 'DATABASE_RESTORE',
+              targetEntity: 'IndexedDB Memory Engine',
+              details: `Restored ${adms.length} admission cycles and ${pops.length} census data points from database memory.`
+            };
+            setAuditLogs(prev => [audit, ...prev]);
+          }}
+        />
       )}
     </div>
   );

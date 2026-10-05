@@ -6,7 +6,8 @@ import {
   TrendingUp,
   Percent,
   Calendar,
-  AlertTriangle
+  AlertTriangle,
+  Info
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -308,14 +309,45 @@ export const AdmissionAnalytics: React.FC<AdmissionAnalyticsProps> = ({
                         {r.status}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-slate-500 dark:text-slate-400 max-w-xs truncate" title={r.notes}>
-                      {r.notes || 'Recorded UOCH cycle.'}
+                    <td className="py-3 px-4 text-slate-500 dark:text-slate-400 max-w-md">
+                      {r.startYear === 2022 ? (
+                        <div className="space-y-1.5 p-2.5 rounded-lg bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/80">
+                          <div className="flex items-center space-x-1.5">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 font-semibold text-[10px] border border-amber-300 dark:border-amber-700">
+                              Institutional &amp; Community Cultural Context
+                            </span>
+                            <span className="text-[10px] text-amber-700 dark:text-amber-400 font-medium">
+                              Trough &amp; Compound Events
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-700 dark:text-slate-200 leading-relaxed font-normal">
+                            In 2022, students organized a culture night event at University of Chitral. Because of this event, the public of Chitral criticized the university, citing that male and female students enjoy together in the culture night is not in accordance with local cultural and traditional values. Consequently, parents refused to give permission to students for getting admission in the university, precipitating a severe enrollment trough (total admitted dropped to 229, with female enrollment falling to 79). This institutional shock was compounded by the catastrophic July–August 2022 monsoon floods (68 bridges and 50km of roads destroyed), KP provincial university grant freeze, fee hikes, and acute hostel/transport collapse.
+                          </p>
+                        </div>
+                      ) : (
+                        <span className="truncate block" title={r.notes}>
+                          {r.notes || 'Recorded UOCH cycle.'}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* 2022 Historical Context & Event Record Information */}
+      <div className="bg-amber-50/70 dark:bg-amber-950/30 rounded-xl p-4 border border-amber-200 dark:border-amber-800/60 text-xs text-amber-900 dark:text-amber-200 flex items-start space-x-3 shadow-xs">
+        <Info className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+        <div className="space-y-1">
+          <p className="font-bold text-amber-900 dark:text-amber-100 uppercase tracking-wider text-[11px]">
+            Historical Record Information — 2022 Culture Night Event &amp; Public Reaction
+          </p>
+          <p className="text-amber-800 dark:text-amber-300/90 leading-relaxed">
+            In 2022, students organized a culture night event at University of Chitral. Because of this event, the public of Chitral criticized the university, citing that male and female students enjoying together in the culture night is not in accordance with local cultural and traditional values. Consequently, parents refused to give permission to students for getting admission in the university, precipitating a severe enrollment trough (total admitted dropped to 229, with female enrollment falling to 79). This was compounded by catastrophic July–August 2022 monsoon floods, KP provincial grant freezes, and regional transport disruption.
+          </p>
         </div>
       </div>
     </div>

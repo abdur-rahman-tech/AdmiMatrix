@@ -42,7 +42,7 @@ import {
   ForecastScenario
 } from '../../types';
 import { generateForecast } from '../../lib/ml/forecastingEngine';
-import { queryInstitutionalAI, StructuredAiResponse } from '../../lib/ai/aiService';
+import { queryGroqInstitutionalAI, getActiveGroqApiKey, StructuredAiResponse } from '../../lib/ai/groqService';
 import { ApiKeyModal } from '../ai/ApiKeyModal';
 import { AiBriefingSkeleton } from '../common/SkeletonLoader';
 
@@ -90,13 +90,13 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
   const [horizonYears, setHorizonYears] = useState<5 | 6 | 7>(5);
   const [selectedModel, setSelectedModel] = useState<ForecastModelId>('AUTO');
   const [scenario, setScenario] = useState<ForecastScenario>('BASELINE');
-  const [planningCapacity, setPlanningCapacity] = useState<number>(3000);
+  const [planningCapacity, setPlanningCapacity] = useState<number>(600);
   const [viewMode, setViewMode] = useState<ViewMode>('HEADCOUNT');
   const [cohortProjectionView, setCohortProjectionView] = useState<'FEMALE' | 'MALE' | 'TOTAL' | 'ALL'>('ALL');
   const [showPredictionBands, setShowPredictionBands] = useState<boolean>(true);
   const [isScorecardExpanded, setIsScorecardExpanded] = useState<boolean>(false);
 
-  // Live Groq AI Briefing State
+  // Live Gemini AI Briefing State
   const [isAiGenerating, setIsAiGenerating] = useState<boolean>(false);
   const [liveAiBriefing, setLiveAiBriefing] = useState<StructuredAiResponse | null>(null);
   const [aiBriefingError, setAiBriefingError] = useState<string | null>(null);
@@ -115,21 +115,28 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
   }, [admissionsData, horizonYears, selectedModel, scenario, planningCapacity, populationData]);
 
   const handleGenerateLiveAiBriefing = async () => {
+    const key = getActiveGroqApiKey();
+    if (!key) {
+      setIsKeyModalOpen(true);
+      return;
+    }
+
     setIsAiGenerating(true);
     setAiBriefingError(null);
 
     const prompt = `Provide an executive institutional planning briefing for the University of Chitral administration based on the currently selected ${forecastResult.modelName} forecast over ${forecastResult.horizonYears} years under the ${scenario} scenario. Specifically address whether projected demand exceeds the planning capacity of ${planningCapacity} seats, the gender parity trajectory, and key operational recommendations for the Vice Chancellor and Registrar.`;
 
     try {
-      const result = await queryInstitutionalAI(
+      const result = await queryGroqInstitutionalAI(
         prompt,
         admissionsData,
         populationData,
-        forecastResult
+        forecastResult,
+        { model: 'llama-3.3-70b-versatile' }
       );
       setLiveAiBriefing(result);
     } catch (err: any) {
-      if (err?.message?.includes('MISSING_API_KEY') || err?.message?.includes('MISSING_GROQ_KEY')) {
+      if (err?.message?.includes('MISSING_GROQ_KEY')) {
         setIsKeyModalOpen(true);
       } else {
         setAiBriefingError(err?.message || 'Error generating live Groq AI briefing.');
@@ -287,23 +294,6 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
         </div>
       </div>
 
-      {/* Data Quality Anomaly Notices (Non-destructive) */}
-      {forecastResult.dataQualityWarnings.length > 0 && (
-        <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/80 flex items-start space-x-3 text-amber-900 dark:text-amber-200 text-xs">
-          <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <span className="font-bold uppercase tracking-wider text-[11px] text-amber-800 dark:text-amber-300">
-              Data Quality &amp; Anomaly Signals Detected:
-            </span>
-            <ul className="list-disc list-inside space-y-0.5 text-amber-700 dark:text-amber-300/90 text-[11px]">
-              {forecastResult.dataQualityWarnings.map((warn, i) => (
-                <li key={i}>{warn}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
-
       {/* Control Panel: Horizon, Model Architecture, Scenarios, and Capacity Assumption */}
       <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-5">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
@@ -412,16 +402,34 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
             <div className="flex items-center space-x-3">
               <input
                 type="range"
-                min="1800"
-                max="4500"
-                step="50"
+                min="500"
+                max="3000"
+                step="25"
                 value={planningCapacity}
                 onChange={e => setPlanningCapacity(Number(e.target.value))}
                 className="w-full accent-purple-600 cursor-pointer h-2 bg-slate-200 dark:bg-slate-700 rounded-lg"
               />
               <span className="text-[10px] text-slate-400 font-mono whitespace-nowrap">
-                Range: 1.8k–4.5k
+                Range: 500–3,000
               </span>
+            </div>
+            {/* Quick Capacity Presets */}
+            <div className="flex items-center space-x-1.5 pt-1">
+              <span className="text-[10px] text-slate-400">Presets:</span>
+              {[500, 600, 750, 1000, 1500, 2000, 3000].map(val => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setPlanningCapacity(val)}
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-mono transition-all cursor-pointer ${
+                    planningCapacity === val
+                      ? 'bg-purple-600 text-white font-bold'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-purple-100 dark:hover:bg-purple-900/40 hover:text-purple-600'
+                  }`}
+                >
+                  {val >= 1000 ? `${val / 1000}k` : val}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -1127,17 +1135,17 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
         </div>
       )}
 
-      {/* Institutional Decision-Support Grounded Summary & Live Groq AI Briefing */}
+      {/* Institutional Decision-Support Grounded Summary & Live Gemini AI Briefing */}
       <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center space-x-2">
             <ShieldAlert className="w-5 h-5 text-amber-500" />
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                Decision-Support Planning Guidance &amp; Live Groq Briefing
+                Decision-Support Planning Guidance &amp; Live AI Briefing
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Deterministic mathematical baseline paired with real-time Groq LPU open-weight intelligence.
+                Deterministic mathematical baseline paired with real-time Groq LPU intelligence.
               </p>
             </div>
           </div>
@@ -1146,12 +1154,12 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
             type="button"
             onClick={handleGenerateLiveAiBriefing}
             disabled={isAiGenerating}
-            className="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs transition cursor-pointer shadow-xs active:scale-95 disabled:opacity-50 shrink-0"
+            className="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs transition cursor-pointer shadow-xs active:scale-95 disabled:opacity-50 shrink-0"
           >
             {isAiGenerating ? (
               <>
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                <span>Generating Live Groq Briefing...</span>
+                <span>Generating Live Briefing...</span>
               </>
             ) : (
               <>
@@ -1171,14 +1179,14 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
 
         {/* Live Groq AI Briefing Output (When Generated) */}
         {!isAiGenerating && liveAiBriefing && (
-          <div className="p-5 rounded-2xl bg-orange-50/50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800/80 space-y-4 transition-all">
-            <div className="flex items-center justify-between pb-2 border-b border-orange-200/60 dark:border-orange-900/60">
-              <span className="text-xs font-bold text-orange-900 dark:text-orange-200 flex items-center space-x-1.5 uppercase tracking-wider">
-                <Sparkles className="w-3.5 h-3.5 text-orange-500" />
+          <div className="p-5 rounded-2xl bg-purple-50/60 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/80 space-y-4 transition-all">
+            <div className="flex items-center justify-between pb-2 border-b border-purple-200/60 dark:border-purple-900/60">
+              <span className="text-xs font-bold text-purple-900 dark:text-purple-200 flex items-center space-x-1.5 uppercase tracking-wider">
+                <Sparkles className="w-3.5 h-3.5 text-purple-600" />
                 <span>Live Groq Executive Synthesis</span>
               </span>
               <div className="flex items-center space-x-2 text-[10px] font-mono">
-                <span className="px-2 py-0.5 rounded bg-orange-200 dark:bg-orange-900/70 text-orange-800 dark:text-orange-200 font-bold">
+                <span className="px-2 py-0.5 rounded bg-purple-200 dark:bg-purple-900 text-purple-800 dark:text-purple-200 font-bold">
                   {liveAiBriefing.meta.modelUsed}
                 </span>
                 <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 font-bold">
@@ -1192,8 +1200,8 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
             </p>
 
             {liveAiBriefing.urduTranslation && (
-              <div className="p-3.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-orange-200 dark:border-orange-900/60 space-y-1">
-                <span className="text-[11px] font-bold text-orange-700 dark:text-orange-300 flex items-center space-x-1">
+              <div className="p-3.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-purple-200 dark:border-purple-900 space-y-1">
+                <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 flex items-center space-x-1">
                   <Languages className="w-3.5 h-3.5" />
                   <span>اردو خلاصہ (Urdu Regional Briefing)</span>
                 </span>

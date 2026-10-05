@@ -2,8 +2,11 @@
  * Groq AI Service for AdmiMatrix
  * 
  * High-Throughput, Low-Latency LPU Inference via Groq Cloud API:
- * - Primary Fast & Deep Reasoning: openai/gpt-oss-120b
- * - Low-latency Efficient Reasoning: openai/gpt-oss-20b
+ * - Flagship Reasoning: llama-3.3-70b-versatile
+ * - High-Speed Instant: llama-3.1-8b-instant
+ * - MoE Architecture: mixtral-8x7b-32768
+ * - Compact Reasoning: gemma2-9b-it
+ * - Multimodal Vision: llama-3.2-11b-vision-preview
  * 
  * Strict Grounding Architecture:
  * - Answers strictly grounded in the active mathematical forecast record in the app
@@ -14,135 +17,163 @@
  */
 
 import { AdmissionRecord, PopulationRecord, ForecastResult } from '../../types';
-import { StructuredAiResponse, VerifiedEvidenceItem, HypothesisItem, SourceCitationItem } from './aiTypes';
 
 export type GroqModelId =
-  | 'openai/gpt-oss-120b'
-  | 'openai/gpt-oss-20b';
+  | 'llama-3.3-70b-versatile'
+  | 'llama-3.1-8b-instant'
+  | 'mixtral-8x7b-32768'
+  | 'gemma2-9b-it';
 
-export const GROQ_MODELS: GroqModelId[] = [
-  'openai/gpt-oss-120b',
-  'openai/gpt-oss-20b'
-];
-
-const GROQ_PREFERRED_MODEL_KEY = 'adminatrix_preferred_groq_model';
-const GROQ_API_KEY_STORAGE_KEY = 'adminatrix_groq_api_key';
-
-export function getGroqApiKey(): string {
-  if (typeof window === 'undefined') return '';
-  return localStorage.getItem(GROQ_API_KEY_STORAGE_KEY)?.trim() || '';
+export interface VerifiedEvidenceItem {
+  fact: string;
+  source: string;
+  confidencePct: number;
 }
 
-export function setGroqApiKey(key: string): void {
+export interface HypothesisItem {
+  statement: string;
+  condition: string;
+  impact: string;
+}
+
+export interface SourceCitationItem {
+  name: string;
+  type: string;
+  detail: string;
+  verified: boolean;
+}
+
+export interface StructuredAiResponse {
+  executiveAnswer: string;
+  urduTranslation?: string;
+  verifiedEvidence: VerifiedEvidenceItem[];
+  hypotheses: HypothesisItem[];
+  dataPoints: Array<{ label: string; value: string }>;
+  confidenceAssessment: 'HIGH' | 'MEDIUM' | 'CONDITIONAL';
+  planningRecommendation: string;
+  dataCitation: string;
+  sourceCitations: SourceCitationItem[];
+  meta: {
+    modelUsed: string;
+    didFallback: boolean;
+    latencyMs: number;
+    timestamp: string;
+  };
+}
+
+export interface VisionDocumentAnalysis {
+  documentTitle: string;
+  detectedAcademicYear?: string;
+  verifiedDataPoints: Array<{ field: string; value: string }>;
+  statisticalSummary: string;
+  anomaliesDetected: string[];
+  recommendationForRegistrar: string;
+  meta: {
+    modelUsed: string;
+    latencyMs: number;
+  };
+}
+
+const GROQ_API_STORAGE_KEY = 'admi_groq_api_key';
+const GROQ_PREFERRED_MODEL_KEY = 'admi_groq_preferred_model';
+
+export function getActiveGroqApiKey(): string {
+  const local = typeof window !== 'undefined' ? localStorage.getItem(GROQ_API_STORAGE_KEY) : null;
+  if (local && local.trim().length > 0) return local.trim();
+
+  const envKey =
+    (import.meta as any).env?.VITE_GROQ_API_KEY ||
+    (typeof process !== 'undefined' ? (process.env?.GROQ_API_KEY || process.env?.VITE_GROQ_API_KEY) : null);
+
+  return (envKey || '').trim();
+}
+
+export function setActiveGroqApiKey(key: string): void {
   if (typeof window !== 'undefined') {
-    const trimmed = key.trim();
-    if (trimmed) {
-      localStorage.setItem(GROQ_API_KEY_STORAGE_KEY, trimmed);
-    } else {
-      localStorage.removeItem(GROQ_API_KEY_STORAGE_KEY);
-    }
+    localStorage.setItem(GROQ_API_STORAGE_KEY, key.trim());
   }
 }
 
-export function clearGroqApiKey(): void {
+export function clearActiveGroqApiKey(): void {
   if (typeof window !== 'undefined') {
-    localStorage.removeItem(GROQ_API_KEY_STORAGE_KEY);
+    localStorage.removeItem(GROQ_API_STORAGE_KEY);
   }
 }
 
 export function getPreferredGroqModel(): GroqModelId {
   const local = typeof window !== 'undefined' ? localStorage.getItem(GROQ_PREFERRED_MODEL_KEY) : null;
-  const normalized = local?.replace(/^groq:/, '').trim();
-  if (normalized && GROQ_MODELS.includes(normalized as GroqModelId)) {
-    return normalized as GroqModelId;
+  const validModels: GroqModelId[] = [
+    'llama-3.3-70b-versatile',
+    'llama-3.1-8b-instant',
+    'mixtral-8x7b-32768',
+    'gemma2-9b-it'
+  ];
+  if (local && validModels.includes(local.replace(/^groq:/, '') as GroqModelId)) {
+    return local.replace(/^groq:/, '') as GroqModelId;
   }
-  return 'openai/gpt-oss-120b';
+  return 'llama-3.3-70b-versatile';
 }
 
 export function setPreferredGroqModel(model: GroqModelId): void {
   if (typeof window !== 'undefined') {
-    localStorage.setItem(GROQ_PREFERRED_MODEL_KEY, model);
+    localStorage.setItem(GROQ_PREFERRED_MODEL_KEY, model.replace(/^groq:/, ''));
   }
 }
-
-export const getPreferredModel = getPreferredGroqModel;
-export const setPreferredModel = setPreferredGroqModel;
 
 /**
  * Tests connection to Groq API
  */
 export async function testGroqConnection(
-  model: GroqModelId = getPreferredGroqModel(),
-  apiKeyToTest?: string
+  apiKey: string,
+  model: GroqModelId = 'llama-3.3-70b-versatile'
 ): Promise<{ success: boolean; message: string; model?: string; latencyMs?: number }> {
-  const startTime = Date.now();
-  const effectiveKey = (apiKeyToTest || getGroqApiKey()).trim();
-
-  try {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (effectiveKey) {
-      headers['x-groq-api-key'] = effectiveKey;
-    }
-
-    const response = await fetch('/api/ai/groq', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        action: 'test',
-        model,
-        apiKey: effectiveKey || undefined
-      })
-    });
-
-    const result = await response.json();
-    if (!response.ok) {
-      return {
-        success: false,
-        message: result.error || `Groq API returned HTTP ${response.status}.`,
-        latencyMs: Date.now() - startTime
-      };
-    }
-    return { ...result, latencyMs: Date.now() - startTime };
-  } catch (error) {
-    return {
-      success: false,
-      message: `Could not reach the AdmiMatrix Groq proxy: ${error instanceof Error ? error.message : 'Network error'}.`
-    };
-  }
-}
-
-/**
- * Validates and saves Groq API key to server and local storage
- */
-export async function saveGroqApiKey(
-  apiKey: string
-): Promise<{ success: boolean; message: string; latencyMs?: number }> {
-  const trimmed = apiKey.trim();
-  if (!trimmed) {
-    clearGroqApiKey();
+  const cleanKey = apiKey.trim();
+  if (!cleanKey) {
     return { success: false, message: 'Please provide a valid Groq API key.' };
   }
 
+  const cleanModel = model.replace(/^groq:/, '');
+  const startTime = Date.now();
   try {
-    const response = await fetch('/api/ai/save-key', {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ apiKey: trimmed })
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${cleanKey}`
+      },
+      body: JSON.stringify({
+        model: cleanModel,
+        messages: [{ role: 'user', content: 'Say "Groq online" in 2 words.' }],
+        max_tokens: 10,
+        temperature: 0.1
+      })
     });
 
-    const data = await response.json();
-    if (!response.ok) {
-      return { success: false, message: data.error || 'Failed to save Groq API key.' };
+    const latencyMs = Date.now() - startTime;
+
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      const errMsg = errJson?.error?.message || `HTTP ${res.status}: ${res.statusText}`;
+      return {
+        success: false,
+        message: `Groq authentication error: ${errMsg}`,
+        latencyMs
+      };
     }
 
-    // Persist in browser local storage as well
-    setGroqApiKey(trimmed);
-    return { success: true, message: data.message || 'Groq API Key verified and saved successfully.' };
-  } catch (error) {
-    setGroqApiKey(trimmed);
+    const data = await res.json();
+    const reply = data?.choices?.[0]?.message?.content?.trim() || 'Groq online';
+
+    return {
+      success: true,
+      message: `Connected to Groq LPU (${cleanModel}): "${reply}" (${latencyMs}ms)`,
+      model: cleanModel,
+      latencyMs
+    };
+  } catch (err: any) {
     return {
       success: false,
-      message: `Key is saved in this browser, but could not be synced to the server: ${error instanceof Error ? error.message : 'Network error'}.`
+      message: `Network error connecting to Groq: ${err?.message || 'Check network connection'}`
     };
   }
 }
@@ -194,7 +225,7 @@ ${currentForecast.predictions
   const admSummary = sortedAdm
     .map(
       a =>
-        `Academic Year ${a.academicYear}: Total Admitted=${a.totalAdmitted} (Male=${a.maleAdmitted} [${a.maleAdmissionRatio}%], Female=${a.femaleAdmitted} [${a.femaleAdmissionRatio}%]), Total Applicants=${a.totalApplicants}`
+        `Academic Year ${a.academicYear}: Total Admitted=${a.totalAdmitted} (Male=${a.maleAdmitted} [${a.maleAdmissionRatio}%], Female=${a.femaleAdmitted} [${a.femaleAdmissionRatio}%]), Total Applicants=${a.totalApplicants}, Notes: "${a.notes || 'Normal cycle'}"`
     )
     .join('\n');
 
@@ -211,27 +242,26 @@ ${currentForecast.predictions
 - PBS 2023 Digital Census Baseline: Total Chitral district population is ~553,526 (Female share: ~48.8% to 49.5%).
 - Verified Official Admission Span: ${firstAdm?.academicYear || '2017-2018'} to ${latestAdm?.academicYear || '2025-2026'}.
 
-=== VERIFIED OFFICIAL ADMISSIONS REALITY (DO NOT DEVIATE OR USE SYNTHETIC NUMBERS) ===
+=== VERIFIED OFFICIAL ADMISSIONS REALITY ===
 - 2018–2019 Parity Benchmark: Female admissions reached 48.90% (290 of 593 total admissions), closely matching the district census demographic baseline (~48.8%).
-- 2022–2023 Severe Trough: Due to regional economic, flood, and transport disruptions, female admissions dropped to 34.50% (79 of 229 total admissions).
+- 2022–2023 Severe Trough: Due to regional economic, flood, and the 2022 culture night controversy, female admissions dropped to 34.50% (79 of 229 total admissions).
 - 2025–2026 Recovery: Female admissions rebounded +144% from the 2022–2023 trough (from 79 to 193 students), reaching 41.06% (193 of 470 total admissions).
 - Current Gender Gap: Although recovering strongly (+144%), female enrollment remains 7.74 percentage points below the 48.8% district census parity baseline.
 - Strategic Planning Priority: UOCH leadership must focus on dedicated valley-route transport and on-campus hostel capacity for Upper Chitral female students to accelerate female representation back to 2018–2019 parity levels (48.90%).
 
-=== AUTHENTICATED HISTORICAL CAUSES OF THE 2022–2023 FEMALE ENROLLMENT TROUGH (79 FEMALES / 34.50%) ===
-1. Catastrophic Monsoon Floods of July–August 2022:
+=== AUTHENTICATED HISTORICAL CAUSES OF THE 2022–2023 ENROLLMENT TROUGH (79 FEMALES / 229 TOTAL) ===
+1. Primary Sociocultural Trigger — 2022 Culture Night & Parental Reluctance:
+   - In 2022, students organized a culture night event at University of Chitral. Following this event, members of the Chitral public criticized the university, citing that male and female students enjoy together in the culture night is not in accordance with local cultural and traditional values.
+   - Consequently, parents refused to give permission to students for getting admission in the university, precipitating a severe enrollment trough (total admitted dropped to 229, with female enrollment falling to 79). This institutional shock was compounded by the catastrophic July–August 2022 monsoon floods (68 bridges and 50km of roads destroyed), KP provincial university grant freeze, fee hikes, and acute hostel/transport collapse.
+2. Catastrophic Monsoon Floods of July–August 2022:
    - KP Provincial Disaster Management Authority (PDMA) declared a state of emergency across Upper and Lower Chitral (~120,000 residents affected).
    - Over 68 bridges and 50+ kilometers of roads were severely damaged or washed away (including Yarkhoon-Booni-Chitral road, Reshun, and the Booni-Mastuj highway at Parwak).
    - Upper Chitral feeder valleys were physically cut off from Chitral town right during the peak Fall 2022 admission window. Mountain transport became hazardous and impassable, preventing female students from traveling.
-2. KP Universities Financial Crisis & Provincial Grant Freezes:
+3. KP Universities Financial Crisis & Provincial Grant Freezes:
    - KP public sector universities faced an unprecedented liquidity crisis; University of Chitral received zero provincial recurring grants in FY 2021–2022.
-   - Facing a multi-million-rupee deficit, the university sharply increased tuition and examination fees, triggering student demonstrations at Chitral Press Club.
-   - Record fuel inflation pushed private and public valley commuting fares beyond the reach of rural households.
-3. Acute Shortage of Secure Female Hostels:
-   - UOCH operated out of rented and provisional campuses with insufficient institutional female hostel capacity.
-   - Private hostels in Chitral town charged unaffordable commercial rates. Culturally, families in Upper and Lower Chitral strictly require verified, secure on-campus accommodation or university transport for daughters. When both failed in 2022, female students were forced to drop out or defer enrollment.
-4. Household Economic Depletion:
-   - Floods decimated irrigation channels, standing agricultural crops, and livestock in Reshun, Booni, and Garam Chashma. Families faced an acute economic survival shock and could not bear university fees and living costs for female dependents.
+   - Facing a multi-million-rupee deficit, the university sharply increased tuition and examination fees.
+4. Acute Shortage of Secure Female Hostels & Household Economic Shock:
+   - UOCH operated out of provisional facilities without adequate dedicated female hostels. After the culture night controversy, without secure institutional boarding, families refused private hostels.
 
 ${forecastSummary}
 
@@ -253,13 +283,19 @@ export async function queryGroqInstitutionalAI(
   population: PopulationRecord[],
   currentForecast: ForecastResult | null,
   options?: {
-    model?: GroqModelId;
+    model?: GroqModelId | string;
+    runtimeApiKey?: string;
   }
 ): Promise<StructuredAiResponse> {
+  const apiKey = options?.runtimeApiKey || getActiveGroqApiKey();
   const startTime = Date.now();
-  const apiKey = getGroqApiKey();
 
-  const chosenModel = options?.model || getPreferredGroqModel();
+  if (!apiKey) {
+    throw new Error('MISSING_GROQ_KEY: Please enter your Groq API key in Dev & AI Settings to enable Groq LPU reasoning.');
+  }
+
+  const rawModel = options?.model || getPreferredGroqModel();
+  const chosenModel = (rawModel.replace(/^groq:/, '') as GroqModelId) || 'llama-3.3-70b-versatile';
   const groundingContext = buildForecastGroundingContext(admissions, population, currentForecast);
 
   const systemInstruction = `
@@ -270,7 +306,7 @@ STRICT ZERO-HALLUCINATION & FORECAST RECORD RULES:
 1. All mathematical forecasts, backtest metrics (MAE, RMSE, MAPE), and capacity limits have ALREADY been deterministically computed by AdmiMatrix's local statistical engine. YOU MUST CITE THEM EXACTLY. NEVER invent, re-calculate, or alter any numbers.
 2. In your answer, explicitly name the active statistical model (e.g. "${currentForecast?.modelName || 'Statistical Engine'}") and cite its validation error metrics (RMSE: ${currentForecast?.metrics.rmse || 'N/A'}, MAPE: ${currentForecast?.metrics.mape || 'N/A'}%).
 3. Explicitly separate "Verified Historical Evidence" (empirical historical admissions or census data) from "Forecast Projections & Planning Hypotheses" (future model predictions).
-4. NEVER cite invented synthetic numbers.
+4. Accurately report authenticated historical causes including the 2022 Culture Night event controversy and resulting parental reluctance, monsoon floods, and transport constraints.
 5. Provide a natural, culturally accurate Urdu translation summary ("urduTranslation") alongside the English executive analysis to support regional stakeholders in Khyber Pakhtunkhwa.
 6. Provide structured source citations acknowledging PBS Census records and UOCH Admission Directorate archives.
 7. Return your response strictly as a valid JSON object matching the requested schema.
@@ -294,45 +330,29 @@ Respond with a complete, valid JSON object containing:
 - sourceCitations: An array of expandable source citations [{ "name": "...", "type": "...", "detail": "...", "verified": true }].
 `;
 
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (apiKey) {
-    headers['x-groq-api-key'] = apiKey;
-  }
-
-  const res = await fetch('/api/ai/groq', {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
-    headers,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`
+    },
     body: JSON.stringify({
       model: chosenModel,
-      apiKey: apiKey || undefined,
-      payload: {
-        messages: [
-          { role: 'system', content: systemInstruction },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.1,
-        response_format: { type: 'json_object' },
-        max_tokens: 3500
-      }
+      messages: [
+        { role: 'system', content: systemInstruction },
+        { role: 'user', content: userPrompt }
+      ],
+      temperature: 0.1,
+      response_format: { type: 'json_object' }
     })
   });
 
   const latencyMs = Date.now() - startTime;
 
   if (!res.ok) {
-    const responseText = await res.text();
-    let errBody: { error?: string; message?: string } = {};
-    try {
-      errBody = JSON.parse(responseText);
-    } catch {
-      // Non-JSON responses usually come from a static host that did not route /api to the proxy.
-    }
-    const errDetail = errBody.error || errBody.message || (
-      res.status === 404
-        ? 'The Groq API proxy returned 404. Run the app with its Node/Vite server so /api/ai/groq is routed to the backend.'
-        : `HTTP ${res.status}: ${res.statusText}`
-    );
-    throw new Error(errDetail);
+    const errBody = await res.json().catch(() => ({}));
+    const errDetail = errBody?.error?.message || `HTTP ${res.status}: ${res.statusText}`;
+    throw new Error(`Groq API Error (${chosenModel}): ${errDetail}`);
   }
 
   const groqJson = await res.json();
@@ -361,9 +381,14 @@ Respond with a complete, valid JSON object containing:
   // Fallback defaults if model omitted any fields
   const defaultVerifiedEvidence: VerifiedEvidenceItem[] = [
     {
-      fact: `Female enrollment crossed 50% majority in AY ${parity?.academicYear || '2024–2025'} at University of Chitral (${parity?.femaleAdmissionRatio || 50.51}%).`,
-      source: 'UOCH Admission Directorate Official Register',
-      confidencePct: 99
+      fact: `Female enrollment reached 48.90% (290/593 admitted) in AY 2018–2019, matching district census demographic baseline.`,
+      source: 'University of Chitral Official Admission Archive',
+      confidencePct: 100
+    },
+    {
+      fact: 'In AY 2022–2023, admissions fell to 229 (79 female admitted) after the culture night controversy, parental reluctance, and July 2022 floods.',
+      source: 'UOCH Directorate of Admissions Verified Headcounts',
+      confidencePct: 100
     },
     {
       fact: 'Chitral total district population recorded at 553,526 in 2023 PBS Digital Census.',
@@ -408,16 +433,8 @@ Respond with a complete, valid JSON object containing:
   let recommendation = parsed.planningRecommendation || '';
   let answer = parsed.executiveAnswer || '';
 
-  const containsSynthetic = /\b(333|1455|974|1283|51\.6%?)\b/.test(recommendation) ||
-    /crossed 50% majority/i.test(recommendation) ||
-    /uninterrupted annual female/i.test(recommendation);
-
-  if (!recommendation || containsSynthetic) {
+  if (!recommendation) {
     recommendation = `The UOCH Directorate of Admissions and KP Higher Education Department should note that while female enrollment is recovering from its 2022–2023 trough (up 144% from 79 to 193 students), it remains below the 48.8% district census gender parity baseline (currently at 41.06%). UOCH leadership should focus on addressing logistical and geographic barriers (e.g., dedicated valley-route transport and on-campus hostel capacity for Upper Chitral students) to accelerate female representation back to 2018–2019 parity levels (48.90%).`;
-  }
-
-  if (containsSynthetic || /crossed 50%/i.test(answer) || /1455/i.test(answer)) {
-    answer = `Official University of Chitral admission records show that female enrollment initially stood at 47.32% (274 of 579) in 2017–2018 and reached 48.90% (290 of 593) in 2018–2019, closely mirroring the district census demographic baseline (~48.8%). After falling to a severe trough of 34.50% (79 of 229) in 2022–2023, female admissions have rebounded +144% to 193 students (41.06% of 470 total admissions) in 2025–2026. However, female representation still lags behind the 48.8% district parity benchmark by 7.74 percentage points.`;
   }
 
   return {
@@ -450,6 +467,87 @@ Respond with a complete, valid JSON object containing:
       didFallback: false,
       latencyMs,
       timestamp: new Date().toISOString()
+    }
+  };
+}
+
+/**
+ * Optical document inspection using Groq Llama 3.2 Vision model
+ */
+export async function analyzeAdmissionDocumentImageWithGroq(
+  imageBase64: string,
+  mimeType: string,
+  userNotes?: string,
+  runtimeApiKey?: string
+): Promise<VisionDocumentAnalysis> {
+  const apiKey = runtimeApiKey || getActiveGroqApiKey();
+  const startTime = Date.now();
+
+  if (!apiKey) {
+    throw new Error('MISSING_GROQ_KEY: Please configure your Groq API key.');
+  }
+
+  const prompt = `
+Inspect this document image related to Chitral / higher education admissions.
+${userNotes ? `User context/notes: "${userNotes}"` : ''}
+
+Return a structured JSON object with:
+- documentTitle: Title or nature of the document.
+- detectedAcademicYear: Detected cycle or date (e.g. "2024-2025" or "Not specified").
+- verifiedDataPoints: Array of [{ "field": "...", "value": "..." }] containing extracted headcounts, quotas, fees, or program names.
+- statisticalSummary: Summary of findings.
+- anomaliesDetected: Array of potential discrepancies, inconsistencies, or unverified claims found in the text.
+- recommendationForRegistrar: Concrete recommendation for institutional record-keeping.
+`;
+
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: 'llama-3.2-11b-vision-preview',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:${mimeType || 'image/jpeg'};base64,${imageBase64}`
+              }
+            }
+          ]
+        }
+      ],
+      temperature: 0.1,
+      response_format: { type: 'json_object' }
+    })
+  });
+
+  const latencyMs = Date.now() - startTime;
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => ({}));
+    const errDetail = errBody?.error?.message || `HTTP ${res.status}: ${res.statusText}`;
+    throw new Error(`Groq Vision API Error: ${errDetail}`);
+  }
+
+  const groqJson = await res.json();
+  const rawText = groqJson?.choices?.[0]?.message?.content || '{}';
+  const parsed = JSON.parse(rawText);
+
+  return {
+    documentTitle: parsed.documentTitle || 'Unclassified Institutional Document',
+    detectedAcademicYear: parsed.detectedAcademicYear,
+    verifiedDataPoints: Array.isArray(parsed.verifiedDataPoints) ? parsed.verifiedDataPoints : [],
+    statisticalSummary: parsed.statisticalSummary || 'Document scanned successfully.',
+    anomaliesDetected: Array.isArray(parsed.anomaliesDetected) ? parsed.anomaliesDetected : [],
+    recommendationForRegistrar: parsed.recommendationForRegistrar || 'Archive document in digital registry.',
+    meta: {
+      modelUsed: 'Groq Llama 3.2 11B Vision',
+      latencyMs
     }
   };
 }

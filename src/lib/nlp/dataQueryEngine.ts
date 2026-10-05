@@ -3,11 +3,11 @@
  * 
  * DESIGN & EVALUATOR NOTE:
  * This module is NOT an LLM. It is an offline, deterministic regex and pattern-matching
- * lookup table designed as a fallback when no internet connection or Groq API key
+ * lookup table designed as a fallback when no internet connection or Gemini API key
  * is present. 
  * 
  * For real generative intelligence, natural language comprehension, and multi-step reasoning,
- * AdmiMatrix routes queries to Groq Cloud LPU (`src/lib/ai/aiService.ts`).
+ * AdmiMatrix routes queries to Groq LPU (`src/lib/ai/groqService.ts`).
  */
 
 import { AdmissionRecord, PopulationRecord, ForecastResult } from '../../types';

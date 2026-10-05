@@ -2,7 +2,6 @@ import React from 'react';
 import {
   TrendingUp,
   Scale,
-  AlertCircle,
   HelpCircle,
   ArrowUpRight,
   GitCommit
@@ -93,19 +92,6 @@ export const HistoricalTrends: React.FC<HistoricalTrendsProps> = ({
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
           Module 3: Cross-sectional comparison of Chitral demographic growth against University of Chitral admission trends.
         </p>
-      </div>
-
-      {/* Mandatory Causation Warning Banner */}
-      <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/80 flex items-start space-x-3 text-amber-900 dark:text-amber-200 shadow-xs">
-        <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-        <div className="text-xs leading-relaxed space-y-1">
-          <p className="font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
-            Statistical Governance Principle: Correlation Does Not Equal Causation
-          </p>
-          <p className="text-amber-700 dark:text-amber-300/90">
-            While high statistical correlation exists ($r = {pearsonR}$) between regional population growth and university admission capacity, AdmiMatrix strictly prohibits asserting direct causation. Institutional admissions are driven by campus infrastructure, accredited faculty strength, Higher Education Commission (HEC) quota approvals, feeder college graduation yields, and local economic conditions rather than population size alone.
-          </p>
-        </div>
       </div>
 
       {/* Primary Trend Charts */}

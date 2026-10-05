@@ -29,7 +29,7 @@ import { AskTheData } from './components/query/AskTheData';
 import { ApiKeyModal } from './components/ai/ApiKeyModal';
 import { DeveloperSettingsSidebar } from './components/layout/DeveloperSettingsSidebar';
 import skylerOfficialLogo from './assets';
-import { Heart, GraduationCap, ExternalLink, Sliders } from 'lucide-react';
+import { Heart, GraduationCap, ExternalLink } from 'lucide-react';
 
 const DEFAULT_ADMIN_USERS: AdminUser[] = [
   {
@@ -184,10 +184,11 @@ export default function App() {
 
   const [admissionsData, setAdmissionsData] = useState<AdmissionRecord[]>(() => {
     try {
-      const saved = localStorage.getItem('uochpulse_adm_data_v2');
+      const saved = localStorage.getItem('uochpulse_adm_data_v3');
       if (saved) return JSON.parse(saved);
-      // Clean legacy synthetic storage to ensure official data loads
+      // Clean legacy synthetic storage to ensure official updated data loads
       localStorage.removeItem('uochpulse_adm_data');
+      localStorage.removeItem('uochpulse_adm_data_v2');
       return INITIAL_ADMISSION_DATA;
     } catch {
       return INITIAL_ADMISSION_DATA;
@@ -217,7 +218,7 @@ export default function App() {
 
   useEffect(() => {
     try {
-      localStorage.setItem('uochpulse_adm_data_v2', JSON.stringify(admissionsData));
+      localStorage.setItem('uochpulse_adm_data_v3', JSON.stringify(admissionsData));
     } catch {}
   }, [admissionsData]);
 
@@ -339,6 +340,7 @@ export default function App() {
             currentSessionUser={currentSessionUser}
             setCurrentSessionUser={setCurrentSessionUser}
             onUpdateUserPin={handleUpdateUserPin}
+            forecastResult={defaultForecast}
           />
         )}
       </main>
@@ -355,37 +357,27 @@ export default function App() {
         onClose={() => setIsDevSettingsOpen(false)}
       />
 
-      {/* Floating Developer & AI Settings Trigger Button */}
-      <button
-        type="button"
-        onClick={() => setIsDevSettingsOpen(true)}
-        className="fixed bottom-5 right-5 z-40 px-3.5 py-2.5 rounded-full bg-slate-900 text-white dark:bg-purple-600 dark:hover:bg-purple-500 shadow-xl border border-slate-700/60 dark:border-purple-400/40 hover:scale-105 active:scale-95 transition cursor-pointer flex items-center space-x-2 text-xs font-bold"
-        title="Open Developer & AI Settings Sidebar"
-      >
-        <Sliders className="w-4 h-4 text-purple-400 dark:text-white" />
-        <span className="hidden sm:inline">AI Settings</span>
-      </button>
-
       {/* Platform Footer */}
       <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-6 text-xs text-slate-500 dark:text-slate-400">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-900 ring-1 ring-cyan-500/50 shrink-0 flex items-center justify-center">
+          <div className="flex items-center space-x-3 group cursor-pointer" onClick={() => setActiveTab('overview')}>
+            <div className="relative w-9 h-9 rounded-xl overflow-hidden bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 ring-2 ring-purple-500/40 group-hover:ring-purple-400 shrink-0 flex items-center justify-center transition-all duration-300 transform group-hover:scale-110 group-hover:-translate-y-0.5 shadow-sm group-hover:shadow-purple-500/25">
               <img
                 src={skylerOfficialLogo}
-                alt="Official Logo"
-                className="w-full h-full object-cover"
+                alt="AdmiMatrix Official Logo"
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 referrerPolicy="no-referrer"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = '/logo.jpg';
                 }}
               />
+              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
             </div>
             <div>
-              <p className="font-bold text-slate-800 dark:text-slate-200">
+              <p className="font-bold text-slate-800 dark:text-slate-200 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
                 AdmiMatrix — University of Chitral Analytics Platform
               </p>
-              <p className="text-[11px] text-cyan-600 dark:text-cyan-400 font-medium">
+              <p className="text-[11px] text-purple-600 dark:text-purple-400 font-medium">
                 Demographic &amp; Admissions Analytics Matrix
               </p>
             </div>

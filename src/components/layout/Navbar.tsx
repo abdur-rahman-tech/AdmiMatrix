@@ -57,28 +57,30 @@ export const Navbar: React.FC<NavbarProps> = ({
     <header className="sticky top-0 z-40 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo & Brand: AdmiMatrix with Official Skyler Emblem */}
+          {/* Logo & Brand: AdmiMatrix Official Logo */}
           <div
             id="brand-header-container"
             className="flex items-center space-x-3 select-none"
           >
-            {/* Official Logo Emblem */}
+            {/* Official Logo Emblem with Interactive Hover & Glow */}
             <button
               type="button"
-              className="relative shrink-0 cursor-pointer focus:outline-none"
+              className="relative shrink-0 cursor-pointer focus:outline-none group"
               onClick={() => setActiveTab('overview')}
               title="AdmiMatrix — Home"
             >
-              <div className="w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 ring-2 ring-cyan-500/60 hover:ring-cyan-400 shadow-xs flex items-center justify-center transition-all duration-200">
+              <div className="relative w-11 h-11 rounded-xl overflow-hidden bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 ring-2 ring-purple-500/50 group-hover:ring-purple-400 shadow-md group-hover:shadow-lg group-hover:shadow-purple-500/30 flex items-center justify-center transition-all duration-300 transform group-hover:scale-105 group-hover:-translate-y-0.5">
                 <img
                   src={skylerOfficialLogo}
-                  alt="Official Logo"
-                  className="w-full h-full object-cover"
+                  alt="AdmiMatrix Official Logo"
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   referrerPolicy="no-referrer"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = '/logo.jpg';
                   }}
                 />
+                {/* Dynamic Specular Sheen on Hover */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
               </div>
             </button>
 
@@ -92,14 +94,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span className="font-extrabold text-base tracking-tight text-slate-900 dark:text-white transition-colors duration-200 group-hover:text-purple-600 dark:group-hover:text-purple-400">
                   AdmiMatrix
                 </span>
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="System Live" />
               </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors">
                 University of Chitral Analytics Platform
               </p>
             </button>
           </div>
 
-          {/* Clean Navigation Links */}
+          {/* Clean Navigation Links with Hover Animations */}
           <nav className="hidden md:flex items-center space-x-1">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -111,13 +114,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`group flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 ease-out cursor-pointer active:scale-95 ${
+                  className={`group relative flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ease-out cursor-pointer hover:-translate-y-0.5 active:scale-95 ${
                     isActive
-                      ? 'bg-purple-600 text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-300 hover:text-purple-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+                      ? 'bg-purple-600 text-white shadow-sm shadow-purple-500/30'
+                      : 'text-slate-600 dark:text-slate-300 hover:text-purple-700 dark:hover:text-white hover:bg-purple-50/70 dark:hover:bg-slate-800'
                   }`}
                 >
-                  <Icon className="w-3.5 h-3.5" />
+                  <Icon className={`w-3.5 h-3.5 transition-transform duration-200 ${isActive ? 'scale-110' : 'group-hover:scale-110 group-hover:text-purple-600 dark:group-hover:text-purple-400'}`} />
                   <span>{item.label}</span>
                 </button>
               );

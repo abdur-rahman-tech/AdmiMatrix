@@ -15,11 +15,11 @@ export const DocumentationModal: React.FC<DocumentationModalProps> = ({ isOpen, 
         {/* Header */}
         <div className="sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-slate-200 dark:border-slate-800 p-5 flex items-center justify-between z-10">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full overflow-hidden bg-purple-900/20 ring-2 ring-purple-500/40 shrink-0">
+            <div className="relative w-11 h-11 rounded-xl overflow-hidden bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 ring-2 ring-purple-500/50 shadow-md flex items-center justify-center shrink-0 group transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 hover:shadow-purple-500/25">
               <img
                 src="/logo.jpg"
-                alt="AdmiMatrix Logo"
-                className="w-full h-full object-cover"
+                alt="AdmiMatrix Official Logo"
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 referrerPolicy="no-referrer"
               />
             </div>
@@ -102,6 +102,22 @@ export const DocumentationModal: React.FC<DocumentationModalProps> = ({ isOpen, 
             <p>
               All future projections are computed dynamically from the highest recorded historical academic year (e.g., if latest record is 2025–2026, the 5-year horizon automatically computes 2026–2027 through 2030–2031; the 7-year horizon extends through 2032–2033).
             </p>
+          </section>
+
+          {/* Section 6: Documented Historical Event — 2022 Culture Night & Enrollment Impact */}
+          <section className="space-y-2">
+            <h4 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-1 flex items-center space-x-2">
+              <FileText className="w-4 h-4 text-rose-600" />
+              <span>6. Documented Historical Event — 2022 Culture Night &amp; Enrollment Impact</span>
+            </h4>
+            <div className="p-3.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs leading-relaxed space-y-1.5 shadow-xs">
+              <p className="font-bold text-amber-950 dark:text-amber-100">
+                Institutional Context &amp; Public Reaction (Academic Year 2022–2023):
+              </p>
+              <p>
+                In 2022, students organized a culture night event at University of Chitral. Because of this event, the public of Chitral criticized the university, citing that male and female students dancing together in the culture night is not in accordance with local cultural and traditional values. As a direct consequence, parents refused to give permission to students for getting admission in the university, precipitating a severe enrollment trough (total admitted dropped to 229, with female enrollment falling to 79). This was compounded by catastrophic July–August 2022 monsoon floods, KP provincial university grant freezes, and regional transport disruption.
+              </p>
+            </div>
           </section>
         </div>
 
