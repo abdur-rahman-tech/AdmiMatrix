@@ -130,12 +130,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div className="flex items-center space-x-3.5">
           <div className="w-12 h-12 rounded-xl overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 ring-2 ring-cyan-500/60 shrink-0 shadow-xs flex items-center justify-center">
             <img
-              src="/skyler_official_logo.jpg"
+              src="/logo.jpg"
               alt="Official Logo"
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = '/uoch-logo.png';
+                (e.target as HTMLImageElement).src = '/logo.jpg';
               }}
             />
           </div>
