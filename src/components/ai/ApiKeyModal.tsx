@@ -10,7 +10,6 @@ import {
   Zap,
   Activity,
   ExternalLink,
-  Layers,
   Cpu
 } from 'lucide-react';
 import {
@@ -18,7 +17,8 @@ import {
   setActiveGroqApiKey,
   clearActiveGroqApiKey,
   testGroqConnection,
-  getPreferredGroqModel
+  getPreferredGroqModel,
+  GROQ_MODEL_ID
 } from '../../lib/ai/groqService';
 
 interface ApiKeyModalProps {
@@ -164,33 +164,16 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
             </p>
           </div>
 
-          {/* Model Architecture Stack */}
+          {/* Active Groq model */}
           <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-2">
             <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px] uppercase tracking-wider flex items-center space-x-1.5">
               <Cpu className="w-3.5 h-3.5 text-orange-500" />
-              <span>Supported Groq LPU Models:</span>
+              <span>Groq LPU Model:</span>
             </span>
-            <div className="grid grid-cols-2 gap-2 text-[11px]">
-              <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                <span className="text-[10px] text-orange-600 dark:text-orange-400 font-bold block">FLAGSHIP REASONING</span>
-                <span className="font-mono font-bold text-slate-900 dark:text-white">llama-3.3-70b-versatile</span>
-                <p className="text-[10px] text-slate-400 mt-0.5">High-intelligence demographic forecasting</p>
-              </div>
-              <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold block">SUB-SECOND INSTANT</span>
-                <span className="font-mono font-bold text-slate-900 dark:text-white">llama-3.1-8b-instant</span>
-                <p className="text-[10px] text-slate-400 mt-0.5">Sub-second query responses &amp; low latency</p>
-              </div>
-              <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold block">MOE ARCHITECTURE</span>
-                <span className="font-mono font-bold text-slate-900 dark:text-white">mixtral-8x7b-32768</span>
-                <p className="text-[10px] text-slate-400 mt-0.5">High-throughput mixture of experts</p>
-              </div>
-              <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                <span className="text-[10px] text-purple-600 dark:text-purple-400 font-bold block">COMPACT REASONING</span>
-                <span className="font-mono font-bold text-slate-900 dark:text-white">gemma2-9b-it</span>
-                <p className="text-[10px] text-slate-400 mt-0.5">Optimized instruction following</p>
-              </div>
+            <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px]">
+              <span className="text-[10px] text-orange-600 dark:text-orange-400 font-bold block">CHAT &amp; VISION</span>
+              <span className="font-mono font-bold text-slate-900 dark:text-white">{GROQ_MODEL_ID}</span>
+              <p className="text-[10px] text-slate-400 mt-0.5">Used consistently for chat queries and document inspection.</p>
             </div>
           </div>
 

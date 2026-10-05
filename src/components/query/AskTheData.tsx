@@ -30,6 +30,7 @@ import {
   StructuredAiResponse,
   VisionDocumentAnalysis,
   getActiveGroqApiKey,
+  GROQ_MODEL_ID,
   getPreferredGroqModel,
   setPreferredGroqModel,
   GroqModelId
@@ -301,10 +302,7 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
                   onChange={e => handleModelChange(e.target.value as GroqModelId)}
                   className="py-1 px-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
                 >
-                  <option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile (Flagship Deep Reasoning — Recommended)</option>
-                  <option value="llama-3.1-8b-instant">llama-3.1-8b-instant (Sub-second Instant)</option>
-                  <option value="mixtral-8x7b-32768">mixtral-8x7b-32768 (High-Throughput MoE)</option>
-                  <option value="gemma2-9b-it">gemma2-9b-it (Compact Reasoning on Groq LPU)</option>
+                  <option value={GROQ_MODEL_ID}>{GROQ_MODEL_ID} (Chat &amp; Vision)</option>
                 </select>
               </div>
             </div>

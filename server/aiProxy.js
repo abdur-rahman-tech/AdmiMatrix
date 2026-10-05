@@ -2,10 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const GROQ_MODELS = new Set([
-  'openai/gpt-oss-120b',
-  'openai/gpt-oss-20b'
-]);
+const GROQ_MODEL_ID = 'qwen/qwen3.8-27b';
+const GROQ_MODELS = new Set([GROQ_MODEL_ID]);
 const MAX_BODY_BYTES = 1024 * 1024;
 const TEST_MESSAGE = 'Say "Groq online" in 2 words.';
 
@@ -120,7 +118,7 @@ export function createAiProxyMiddleware() {
       if (!isSameOrigin(req)) return sendJson(res, 403, { error: 'Cross-origin requests are not allowed.' });
       return sendJson(res, 200, {
         groqConfigured: Boolean(getConfiguredGroqApiKey()),
-        defaultModel: 'openai/gpt-oss-120b',
+        defaultModel: GROQ_MODEL_ID,
         supportedModels: Array.from(GROQ_MODELS)
       });
     }
@@ -140,7 +138,7 @@ export function createAiProxyMiddleware() {
         // Verify with live Groq ping
         const startedAt = Date.now();
         await callGroq(apiKey, {
-          model: 'openai/gpt-oss-120b',
+          model: GROQ_MODEL_ID,
           messages: [{ role: 'user', content: 'Say online' }],
           max_tokens: 50
         });
@@ -186,7 +184,7 @@ export function createAiProxyMiddleware() {
         });
       }
 
-      const model = body.model || 'openai/gpt-oss-120b';
+      const model = body.model || GROQ_MODEL_ID;
       if (!GROQ_MODELS.has(model)) {
         return sendJson(res, 400, { error: `Model "${model}" is not in supported Groq models: ${Array.from(GROQ_MODELS).join(', ')}` });
       }

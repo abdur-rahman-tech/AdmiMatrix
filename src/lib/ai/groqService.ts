@@ -2,11 +2,7 @@
  * Groq AI Service for AdmiMatrix
  * 
  * High-Throughput, Low-Latency LPU Inference via Groq Cloud API:
- * - Flagship Reasoning: llama-3.3-70b-versatile
- * - High-Speed Instant: llama-3.1-8b-instant
- * - MoE Architecture: mixtral-8x7b-32768
- * - Compact Reasoning: gemma2-9b-it
- * - Multimodal Vision: llama-3.2-11b-vision-preview
+ * - Chat and multimodal vision: qwen/qwen3.8-27b
  * 
  * Strict Grounding Architecture:
  * - Answers strictly grounded in the active mathematical forecast record in the app
@@ -18,11 +14,8 @@
 
 import { AdmissionRecord, PopulationRecord, ForecastResult } from '../../types';
 
-export type GroqModelId =
-  | 'llama-3.3-70b-versatile'
-  | 'llama-3.1-8b-instant'
-  | 'mixtral-8x7b-32768'
-  | 'gemma2-9b-it';
+export const GROQ_MODEL_ID = 'qwen/qwen3.8-27b';
+export type GroqModelId = typeof GROQ_MODEL_ID;
 
 export interface VerifiedEvidenceItem {
   fact: string;
@@ -101,22 +94,12 @@ export function clearActiveGroqApiKey(): void {
 }
 
 export function getPreferredGroqModel(): GroqModelId {
-  const local = typeof window !== 'undefined' ? localStorage.getItem(GROQ_PREFERRED_MODEL_KEY) : null;
-  const validModels: GroqModelId[] = [
-    'llama-3.3-70b-versatile',
-    'llama-3.1-8b-instant',
-    'mixtral-8x7b-32768',
-    'gemma2-9b-it'
-  ];
-  if (local && validModels.includes(local.replace(/^groq:/, '') as GroqModelId)) {
-    return local.replace(/^groq:/, '') as GroqModelId;
-  }
-  return 'llama-3.3-70b-versatile';
+  return GROQ_MODEL_ID;
 }
 
 export function setPreferredGroqModel(model: GroqModelId): void {
   if (typeof window !== 'undefined') {
-    localStorage.setItem(GROQ_PREFERRED_MODEL_KEY, model.replace(/^groq:/, ''));
+    localStorage.setItem(GROQ_PREFERRED_MODEL_KEY, model);
   }
 }
 
@@ -125,7 +108,7 @@ export function setPreferredGroqModel(model: GroqModelId): void {
  */
 export async function testGroqConnection(
   apiKey: string,
-  model: GroqModelId = 'llama-3.3-70b-versatile'
+  model: GroqModelId = GROQ_MODEL_ID
 ): Promise<{ success: boolean; message: string; model?: string; latencyMs?: number }> {
   const cleanKey = apiKey.trim();
   if (!cleanKey) {
@@ -283,7 +266,7 @@ export async function queryGroqInstitutionalAI(
   population: PopulationRecord[],
   currentForecast: ForecastResult | null,
   options?: {
-    model?: GroqModelId | string;
+    model?: GroqModelId;
     runtimeApiKey?: string;
   }
 ): Promise<StructuredAiResponse> {
@@ -294,8 +277,7 @@ export async function queryGroqInstitutionalAI(
     throw new Error('MISSING_GROQ_KEY: Please enter your Groq API key in Dev & AI Settings to enable Groq LPU reasoning.');
   }
 
-  const rawModel = options?.model || getPreferredGroqModel();
-  const chosenModel = (rawModel.replace(/^groq:/, '') as GroqModelId) || 'llama-3.3-70b-versatile';
+  const chosenModel = options?.model ?? GROQ_MODEL_ID;
   const groundingContext = buildForecastGroundingContext(admissions, population, currentForecast);
 
   const systemInstruction = `
@@ -472,7 +454,7 @@ Respond with a complete, valid JSON object containing:
 }
 
 /**
- * Optical document inspection using Groq Llama 3.2 Vision model
+ * Optical document inspection using Groq Qwen vision model
  */
 export async function analyzeAdmissionDocumentImageWithGroq(
   imageBase64: string,
@@ -507,7 +489,7 @@ Return a structured JSON object with:
       Authorization: `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: 'llama-3.2-11b-vision-preview',
+      model: GROQ_MODEL_ID,
       messages: [
         {
           role: 'user',

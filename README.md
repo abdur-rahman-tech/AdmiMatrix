@@ -3,7 +3,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![React 19](https://img.shields.io/badge/React-19_SPA-61dafb?logo=react)](https://react.dev/)
 [![Vite 6](https://img.shields.io/badge/Vite-6.0-646cff?logo=vite)](https://vitejs.dev/)
-[![Groq LPU](https://img.shields.io/badge/Groq_LPU-Llama_3.3_70B-orange?logo=fastapi)](https://groq.com/)
+[![Groq LPU](https://img.shields.io/badge/Groq_LPU-Qwen_3.8_27B-orange?logo=fastapi)](https://groq.com/)
 [![Reviewed by HindukushSoft](https://img.shields.io/badge/Code_Quality-Reviewed_by_HindukushSoft-emerald)](#4-technical-execution--code-verification-20)
 [![Official Records](https://img.shields.io/badge/Data-PBS_Census_%2B_UOCH_Official-purple)](#1-problem-understanding--relevance-20)
 
@@ -17,7 +17,7 @@
 |---|---|:---:|---|
 | **1** | [**Problem Understanding & Relevance**](#1-problem-understanding--relevance-20) | **20%** | Solves high-altitude Hindu Kush mountain isolation, floods, transport barriers, and parental permission dynamics. |
 | **2** | [**Innovation & Creativity**](#2-innovation--creativity-20) | **20%** | Independent gender headcount modeling, unconstrained demand vs. capacity separation, and walk-forward backtesting. |
-| **3** | [**AI Implementation & Depth**](#3-ai-implementation--depth-25) | **25%** | Groq LPU ultra-low latency inference (`llama-3.3-70b-versatile`), zero-hallucination math grounding, bilingual Urdu/English synthesis. |
+| **3** | [**AI Implementation & Depth**](#3-ai-implementation--depth-25) | **25%** | Groq LPU chat and multimodal inference (`qwen/qwen3.8-27b`), zero-hallucination math grounding, bilingual Urdu/English synthesis. |
 | **4** | [**Technical Execution & Code Verification**](#4-technical-execution--code-verification-20) | **20%** | Pre-reviewed by HindukushSoft, 100% complete interactive prototype, strict TypeScript with **0 errors**. |
 | **5** | [**Presentation Clarity & Live Defense**](#5-presentation-clarity--live-defense-15) | **15%** | Structured 3-minute jury pitch, visual architecture diagrams, and ready defense answers for the 3-minute Q&A. |
 
