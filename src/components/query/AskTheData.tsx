@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Sparkles,
   Search,
@@ -57,6 +57,8 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
   const [question, setQuestion] = useState('');
   const [selectedModel, setSelectedModel] = useState<GeminiModelId>(getPreferredModel());
   const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
+  const [hasServerGeminiKey, setHasServerGeminiKey] = useState(false);
+  const [hasServerGroqKey, setHasServerGroqKey] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [expandedCitationIndex, setExpandedCitationIndex] = useState<number | null>(null);
@@ -140,6 +142,20 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
   const activeGroqKey = getActiveGroqApiKey();
   const activeApiKey = getActiveApiKey();
 
+  useEffect(() => {
+    fetch('/api/ai/config')
+      .then(async response => {
+        if (!response.ok) throw new Error(`Configuration request failed (${response.status}).`);
+        const config = await response.json();
+        setHasServerGeminiKey(Boolean(config.geminiConfigured));
+        setHasServerGroqKey(Boolean(config.groqConfigured));
+      })
+      .catch(() => {
+        setHasServerGeminiKey(false);
+        setHasServerGroqKey(false);
+      });
+  }, []);
+
   const presetQueries = [
     'Why did female student enrollment collapse to 79 (34.5%) in 2022–2023, and how is it recovering?',
     'What was the historical female parity peak in 2018–2019 and why does current enrollment remain below it?',
@@ -154,25 +170,6 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
 
   const handleAskQuery = async (queryText: string) => {
     if (!queryText.trim()) return;
-
-    if (isGroqModel && !activeGroqKey) {
-      if (onOpenDevSettings) {
-        onOpenDevSettings();
-      } else {
-        setIsKeyModalOpen(true);
-      }
-      setErrorMessage('Please enter your Groq API key in Dev & AI Settings to use Groq LPU models.');
-      return;
-    }
-
-    if (!isGroqModel && !activeApiKey) {
-      if (onOpenDevSettings) {
-        onOpenDevSettings();
-      } else {
-        setIsKeyModalOpen(true);
-      }
-      return;
-    }
 
     setIsLoading(true);
     setErrorMessage(null);
@@ -216,14 +213,6 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
 
   const handleInspectDocument = async () => {
     if (!visionImageBase64) return;
-    if (!activeApiKey) {
-      if (onOpenDevSettings) {
-        onOpenDevSettings();
-      } else {
-        setIsKeyModalOpen(true);
-      }
-      return;
-    }
 
     setIsLoading(true);
     setErrorMessage(null);
@@ -291,7 +280,7 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
             <button
               onClick={() => setIsKeyModalOpen(true)}
               className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition cursor-pointer shadow-xs active:scale-95 ${
-                (isGroqModel ? activeGroqKey : activeApiKey)
+                (isGroqModel ? activeGroqKey || hasServerGroqKey : activeApiKey || hasServerGeminiKey)
                   ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
                   : 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 animate-pulse'
               }`}
@@ -299,10 +288,10 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
               <Key className="w-3.5 h-3.5" />
               <span>
                 {isGroqModel
-                  ? activeGroqKey
+                  ? activeGroqKey || hasServerGroqKey
                     ? 'Groq Key: Connected'
                     : 'Configure Groq Key'
-                  : activeApiKey
+                  : activeApiKey || hasServerGeminiKey
                   ? 'Gemini Key: Connected'
                   : 'Configure Gemini Key'}
               </span>
@@ -368,6 +357,8 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
                   className="py-1 px-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
                 >
                   <optgroup label="Groq LPU (Ultra-Low Latency &amp; Forecast Grounded)">
+                    <option value="groq:openai/gpt-oss-120b">Groq GPT OSS 120B (Recommended)</option>
+                    <option value="groq:openai/gpt-oss-20b">Groq GPT OSS 20B</option>
                     <option value="groq:llama-3.3-70b-versatile">Groq Llama 3.3 70B (Fast Deep Reasoning)</option>
                     <option value="groq:llama-3.1-8b-instant">Groq Llama 3.1 8B (Sub-second Instant)</option>
                     <option value="groq:mixtral-8x7b-32768">Groq Mixtral 8x7B (High Throughput MoE)</option>

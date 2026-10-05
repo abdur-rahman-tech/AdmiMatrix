@@ -42,7 +42,7 @@ import {
   ForecastScenario
 } from '../../types';
 import { generateForecast } from '../../lib/ml/forecastingEngine';
-import { queryInstitutionalAI, getActiveApiKey, StructuredAiResponse } from '../../lib/ai/geminiService';
+import { queryInstitutionalAI, StructuredAiResponse } from '../../lib/ai/geminiService';
 import { ApiKeyModal } from '../ai/ApiKeyModal';
 import { AiBriefingSkeleton } from '../common/SkeletonLoader';
 
@@ -115,12 +115,6 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
   }, [admissionsData, horizonYears, selectedModel, scenario, planningCapacity, populationData]);
 
   const handleGenerateLiveAiBriefing = async () => {
-    const key = getActiveApiKey();
-    if (!key) {
-      setIsKeyModalOpen(true);
-      return;
-    }
-
     setIsAiGenerating(true);
     setAiBriefingError(null);
 

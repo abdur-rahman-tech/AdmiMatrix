@@ -18,6 +18,8 @@ import { AdmissionRecord, PopulationRecord, ForecastResult } from '../../types';
 import { StructuredAiResponse, VerifiedEvidenceItem, HypothesisItem, SourceCitationItem } from './geminiService';
 
 export type GroqModelId =
+  | 'openai/gpt-oss-120b'
+  | 'openai/gpt-oss-20b'
   | 'llama-3.3-70b-versatile'
   | 'llama-3.1-8b-instant'
   | 'mixtral-8x7b-32768';
@@ -28,12 +30,7 @@ const GROQ_PREFERRED_MODEL_KEY = 'admi_groq_preferred_model';
 export function getActiveGroqApiKey(): string {
   const local = typeof window !== 'undefined' ? localStorage.getItem(GROQ_API_STORAGE_KEY) : null;
   if (local && local.trim().length > 0) return local.trim();
-
-  const envKey =
-    (import.meta as any).env?.VITE_GROQ_API_KEY ||
-    (typeof process !== 'undefined' ? (process.env?.GROQ_API_KEY || process.env?.VITE_GROQ_API_KEY) : null);
-
-  return (envKey || '').trim();
+  return '';
 }
 
 export function setActiveGroqApiKey(key: string): void {
@@ -50,10 +47,10 @@ export function clearActiveGroqApiKey(): void {
 
 export function getPreferredGroqModel(): GroqModelId {
   const local = typeof window !== 'undefined' ? localStorage.getItem(GROQ_PREFERRED_MODEL_KEY) : null;
-  if (local && (local === 'llama-3.3-70b-versatile' || local === 'llama-3.1-8b-instant' || local === 'mixtral-8x7b-32768')) {
+  if (local && (local === 'openai/gpt-oss-120b' || local === 'openai/gpt-oss-20b' || local === 'llama-3.3-70b-versatile' || local === 'llama-3.1-8b-instant' || local === 'mixtral-8x7b-32768')) {
     return local as GroqModelId;
   }
-  return 'llama-3.3-70b-versatile';
+  return 'openai/gpt-oss-120b';
 }
 
 export function setPreferredGroqModel(model: GroqModelId): void {
@@ -67,11 +64,19 @@ export function setPreferredGroqModel(model: GroqModelId): void {
  */
 export async function testGroqConnection(
   apiKey: string,
-  model: GroqModelId = 'llama-3.3-70b-versatile'
+  model: GroqModelId = 'openai/gpt-oss-120b'
 ): Promise<{ success: boolean; message: string; model?: string; latencyMs?: number }> {
   const cleanKey = apiKey.trim();
   if (!cleanKey) {
-    return { success: false, message: 'Please provide a valid Groq API key.' };
+    const response = await fetch('/api/ai/groq', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'test', model })
+    });
+    const result = await response.json();
+    return response.ok
+      ? result
+      : { success: false, message: result.error || 'Could not connect using the server-configured Groq key.' };
   }
 
   const startTime = Date.now();
@@ -236,10 +241,6 @@ export async function queryGroqInstitutionalAI(
   const apiKey = options?.runtimeApiKey || getActiveGroqApiKey();
   const startTime = Date.now();
 
-  if (!apiKey) {
-    throw new Error('MISSING_GROQ_KEY: Please enter your Groq API key in Dev & AI Settings to enable Groq LPU reasoning.');
-  }
-
   const chosenModel = options?.model || getPreferredGroqModel();
   const groundingContext = buildForecastGroundingContext(admissions, population, currentForecast);
 
@@ -275,7 +276,9 @@ Respond with a complete, valid JSON object containing:
 - sourceCitations: An array of expandable source citations [{ "name": "...", "type": "...", "detail": "...", "verified": true }].
 `;
 
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  const res = await fetch(apiKey
+    ? 'https://api.groq.com/openai/v1/chat/completions'
+    : '/api/ai/groq', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

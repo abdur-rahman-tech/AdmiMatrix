@@ -24,7 +24,9 @@ export type GeminiModelId =
   | 'gemini-3.1-pro-preview'
   | 'groq:llama-3.3-70b-versatile'
   | 'groq:llama-3.1-8b-instant'
-  | 'groq:mixtral-8x7b-32768';
+  | 'groq:mixtral-8x7b-32768'
+  | 'groq:openai/gpt-oss-120b'
+  | 'groq:openai/gpt-oss-20b';
 
 export interface VerifiedEvidenceItem {
   fact: string;
@@ -88,7 +90,7 @@ function isValidKey(key: unknown): key is string {
 }
 
 /**
- * Resolves active API Key prioritizing runtime UI override, then Vite/Node env
+ * Resolves a browser-entered API key. Environment keys stay on the server.
  */
 export function getActiveApiKey(): string {
   if (typeof window !== 'undefined') {
@@ -97,27 +99,6 @@ export function getActiveApiKey(): string {
       return userKey.trim();
     }
   }
-
-  const viteKey = (import.meta as any).env?.VITE_GEMINI_API_KEY;
-  if (isValidKey(viteKey)) {
-    return viteKey.trim();
-  }
-
-  const viteStandardKey = (import.meta as any).env?.GEMINI_API_KEY;
-  if (isValidKey(viteStandardKey)) {
-    return viteStandardKey.trim();
-  }
-
-  const processKey = typeof process !== 'undefined' ? process.env?.GEMINI_API_KEY : undefined;
-  if (isValidKey(processKey)) {
-    return processKey.trim();
-  }
-
-  const processViteKey = typeof process !== 'undefined' ? process.env?.VITE_GEMINI_API_KEY : undefined;
-  if (isValidKey(processViteKey)) {
-    return processViteKey.trim();
-  }
-
   return '';
 }
 
@@ -140,7 +121,18 @@ export function clearActiveApiKey(): void {
 export function getPreferredModel(): GeminiModelId {
   if (typeof window !== 'undefined') {
     const saved = localStorage.getItem(MODEL_PREF_KEY) as GeminiModelId;
-    if (saved && ['gemini-2.5-flash', 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite', 'gemini-3.1-pro-preview'].includes(saved)) {
+    if (saved && [
+      'gemini-2.5-flash',
+      'gemini-3.8-flash',
+      'gemini-flash-latest',
+      'gemini-3.1-flash-lite',
+      'gemini-3.1-pro-preview',
+      'groq:openai/gpt-oss-120b',
+      'groq:openai/gpt-oss-20b',
+      'groq:llama-3.3-70b-versatile',
+      'groq:llama-3.1-8b-instant',
+      'groq:mixtral-8x7b-32768'
+    ].includes(saved)) {
       return saved;
     }
   }
@@ -161,12 +153,20 @@ export async function testGeminiConnection(keyToTest?: string, modelToTest?: Gem
   const startTime = Date.now();
 
   if (!apiKey) {
-    return {
-      success: false,
-      model: 'none',
-      message: 'No API key provided. Please configure a valid Google Gemini API key.',
-      latencyMs: 0
-    };
+    const response = await fetch('/api/ai/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'test', model: modelToTest || getPreferredModel() })
+    });
+    const result = await response.json();
+    return response.ok
+      ? result
+      : {
+          success: false,
+          model: 'server',
+          message: result.error || 'Could not connect using the server-configured Gemini key.',
+          latencyMs: Date.now() - startTime
+        };
   }
 
   const targetModel = modelToTest || getPreferredModel();
@@ -220,6 +220,19 @@ async function executeGeminiWithFallback(
   payload: any,
   preferredModel: GeminiModelId = 'gemini-3.8-flash'
 ): Promise<{ data: any; modelUsed: string; didFallback: boolean }> {
+  if (!apiKey) {
+    const response = await fetch('/api/ai/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: preferredModel, payload })
+    });
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.error || 'Gemini server request failed.');
+    }
+    return result;
+  }
+
   const modelChain: GeminiModelId[] = [
     preferredModel,
     'gemini-3.8-flash',
@@ -413,10 +426,6 @@ export async function queryInstitutionalAI(
   const apiKey = options?.runtimeApiKey || getActiveApiKey();
   const startTime = Date.now();
 
-  if (!apiKey) {
-    throw new Error('MISSING_API_KEY: Please enter your Google Gemini API key to enable live AI reasoning.');
-  }
-
   const evidenceContext = buildEvidenceContext(admissions, population, currentForecast);
 
   const systemInstruction = `
@@ -570,10 +579,6 @@ export async function analyzeAdmissionDocumentImage(
   const apiKey = runtimeApiKey || getActiveApiKey();
   const startTime = Date.now();
 
-  if (!apiKey) {
-    throw new Error('MISSING_API_KEY: Please provide your Google Gemini API key to run multimodal vision inspection.');
-  }
-
   const systemInstruction = `
 You are the Senior Registrar & Optical Document Verification AI for University of Chitral (UOCH).
 Inspect the provided institutional document, newspaper cutting, fee voucher, or admission notice.
@@ -615,7 +620,9 @@ Return a structured JSON object with:
     }
   };
 
-  const { data, modelUsed } = await executeGeminiWithFallback(apiKey, payload, getPreferredModel());
+  const preferredModel = getPreferredModel();
+  const visionModel = preferredModel.startsWith('groq:') ? 'gemini-3.8-flash' : preferredModel;
+  const { data, modelUsed } = await executeGeminiWithFallback(apiKey, payload, visionModel);
   const latencyMs = Date.now() - startTime;
   const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 

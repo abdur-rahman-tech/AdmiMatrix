@@ -53,6 +53,9 @@ export const DeveloperSettingsSidebar: React.FC<DeveloperSettingsSidebarProps> =
   const [selectedModel, setSelectedModel] = useState<GeminiModelId>('gemini-3.8-flash');
   const [isTesting, setIsTesting] = useState(false);
   const [isTestingGroq, setIsTestingGroq] = useState(false);
+  const [hasServerGeminiKey, setHasServerGeminiKey] = useState(false);
+  const [hasServerGroqKey, setHasServerGroqKey] = useState(false);
+  const [serverConfigAvailable, setServerConfigAvailable] = useState(true);
   const [testResult, setTestResult] = useState<{
     success: boolean;
     message: string;
@@ -66,16 +69,6 @@ export const DeveloperSettingsSidebar: React.FC<DeveloperSettingsSidebarProps> =
     latencyMs?: number;
   } | null>(null);
 
-  const hasEnvKey = Boolean(
-    (import.meta as any).env?.VITE_GEMINI_API_KEY ||
-    (typeof process !== 'undefined' && process.env?.GEMINI_API_KEY)
-  );
-
-  const hasEnvGroqKey = Boolean(
-    (import.meta as any).env?.VITE_GROQ_API_KEY ||
-    (typeof process !== 'undefined' && process.env?.GROQ_API_KEY)
-  );
-
   useEffect(() => {
     if (isOpen) {
       setApiKeyInput(getActiveApiKey());
@@ -83,6 +76,19 @@ export const DeveloperSettingsSidebar: React.FC<DeveloperSettingsSidebarProps> =
       setSelectedModel(getPreferredModel());
       setTestResult(null);
       setGroqTestResult(null);
+      fetch('/api/ai/config')
+        .then(async response => {
+          if (!response.ok) throw new Error(`Configuration request failed (${response.status}).`);
+          const config = await response.json();
+          setHasServerGeminiKey(Boolean(config.geminiConfigured));
+          setHasServerGroqKey(Boolean(config.groqConfigured));
+          setServerConfigAvailable(true);
+        })
+        .catch(() => {
+          setHasServerGeminiKey(false);
+          setHasServerGroqKey(false);
+          setServerConfigAvailable(false);
+        });
     }
   }, [isOpen]);
 
@@ -147,7 +153,7 @@ export const DeveloperSettingsSidebar: React.FC<DeveloperSettingsSidebarProps> =
     try {
       const chosenGroqModel = selectedModel.startsWith('groq:')
         ? (selectedModel.replace('groq:', '') as GroqModelId)
-        : 'llama-3.3-70b-versatile';
+        : 'openai/gpt-oss-120b';
       const res = await testGroqConnection(groqKeyInput.trim(), chosenGroqModel);
       setGroqTestResult(res);
     } catch (err: any) {
@@ -225,7 +231,7 @@ export const DeveloperSettingsSidebar: React.FC<DeveloperSettingsSidebarProps> =
                   setTestResult(null);
                 }}
                 onBlur={handleSaveKey}
-                placeholder="AIzaSy... (Overrides .env at runtime)"
+                placeholder="AIzaSy... (Browser-local override; server .env is preferred)"
                 className="w-full pl-3 pr-10 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
               <button
@@ -239,7 +245,11 @@ export const DeveloperSettingsSidebar: React.FC<DeveloperSettingsSidebarProps> =
 
             <div className="flex items-center justify-between text-[11px]">
               <span className="text-slate-500 dark:text-slate-400">
-                {hasEnvKey ? '✓ Environment fallback detected' : 'No .env key detected'}
+                {!serverConfigAvailable
+                  ? 'Server configuration status unavailable'
+                  : hasServerGeminiKey
+                    ? '✓ Server .env key detected'
+                    : 'No server .env key detected'}
               </span>
               {apiKeyInput && (
                 <button
@@ -280,7 +290,7 @@ export const DeveloperSettingsSidebar: React.FC<DeveloperSettingsSidebarProps> =
                   setGroqTestResult(null);
                 }}
                 onBlur={handleSaveKey}
-                placeholder="gsk_... (Enables Llama 3.3 on Groq LPU)"
+                placeholder="gsk_... (Browser-local override; server .env is preferred)"
                 className="w-full pl-3 pr-10 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
               <button
@@ -294,19 +304,23 @@ export const DeveloperSettingsSidebar: React.FC<DeveloperSettingsSidebarProps> =
 
             <div className="flex items-center justify-between text-[11px]">
               <span className="text-slate-500 dark:text-slate-400">
-                {hasEnvGroqKey ? '✓ Groq .env fallback detected' : 'No Groq key saved'}
+                {!serverConfigAvailable
+                  ? 'Server configuration status unavailable'
+                  : hasServerGroqKey
+                    ? '✓ Server .env key detected'
+                    : groqKeyInput
+                      ? '✓ Browser-local Groq key saved'
+                      : 'No Groq key saved'}
               </span>
               <div className="flex items-center space-x-3">
-                {groqKeyInput && (
-                  <button
-                    type="button"
-                    onClick={handleTestGroqPing}
-                    disabled={isTestingGroq}
-                    className="text-orange-600 dark:text-orange-400 hover:underline font-bold cursor-pointer"
-                  >
-                    {isTestingGroq ? 'Testing...' : 'Test Groq'}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={handleTestGroqPing}
+                  disabled={isTestingGroq}
+                  className="text-orange-600 dark:text-orange-400 hover:underline font-bold cursor-pointer disabled:opacity-50"
+                >
+                  {isTestingGroq ? 'Testing...' : 'Test Groq'}
+                </button>
                 {groqKeyInput && (
                   <button
                     type="button"
@@ -355,6 +369,8 @@ export const DeveloperSettingsSidebar: React.FC<DeveloperSettingsSidebarProps> =
               className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
             >
               <optgroup label="Groq LPU (Ultra-Low Latency &amp; Forecast Grounded)">
+                <option value="groq:openai/gpt-oss-120b">groq:openai/gpt-oss-120b (Recommended)</option>
+                <option value="groq:openai/gpt-oss-20b">groq:openai/gpt-oss-20b</option>
                 <option value="groq:llama-3.3-70b-versatile">groq:llama-3.3-70b-versatile (Fast Deep Reasoning)</option>
                 <option value="groq:llama-3.1-8b-instant">groq:llama-3.1-8b-instant (Sub-second Instant)</option>
                 <option value="groq:mixtral-8x7b-32768">groq:mixtral-8x7b-32768 (High Throughput MoE)</option>
@@ -378,7 +394,7 @@ export const DeveloperSettingsSidebar: React.FC<DeveloperSettingsSidebarProps> =
               <button
                 type="button"
                 onClick={handleTestPing}
-                disabled={isTesting || !apiKeyInput}
+                disabled={isTesting}
                 className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-bold transition disabled:opacity-50 cursor-pointer shadow-xs active:scale-95"
               >
                 <Activity className={`w-3.5 h-3.5 ${isTesting ? 'animate-spin' : ''}`} />

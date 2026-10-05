@@ -43,27 +43,30 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
   const [groqKeyInput, setGroqKeyInput] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [hasServerGeminiKey, setHasServerGeminiKey] = useState(false);
+  const [hasServerGroqKey, setHasServerGroqKey] = useState(false);
   const [testResult, setTestResult] = useState<{
     success: boolean;
     message: string;
     model?: string;
   } | null>(null);
 
-  const hasEnvKey = Boolean(
-    (import.meta as any).env?.VITE_GEMINI_API_KEY ||
-    (typeof process !== 'undefined' && process.env?.GEMINI_API_KEY)
-  );
-
-  const hasEnvGroqKey = Boolean(
-    (import.meta as any).env?.VITE_GROQ_API_KEY ||
-    (typeof process !== 'undefined' && process.env?.GROQ_API_KEY)
-  );
-
   useEffect(() => {
     if (isOpen) {
       setApiKeyInput(getActiveApiKey());
       setGroqKeyInput(getActiveGroqApiKey());
       setTestResult(null);
+      fetch('/api/ai/config')
+        .then(async response => {
+          if (!response.ok) throw new Error(`Configuration request failed (${response.status}).`);
+          const config = await response.json();
+          setHasServerGeminiKey(Boolean(config.geminiConfigured));
+          setHasServerGroqKey(Boolean(config.groqConfigured));
+        })
+        .catch(() => {
+          setHasServerGeminiKey(false);
+          setHasServerGroqKey(false);
+        });
     }
   }, [isOpen]);
 
@@ -96,7 +99,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
         const result = await testGeminiConnection(apiKeyInput.trim());
         setTestResult(result);
       } else {
-        const result = await testGroqConnection(groqKeyInput.trim(), 'llama-3.3-70b-versatile');
+        const result = await testGroqConnection(groqKeyInput.trim(), 'openai/gpt-oss-120b');
         setTestResult(result);
       }
     } catch (err: any) {
@@ -126,7 +129,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                     ? 'bg-orange-100 text-orange-800 dark:bg-orange-950/80 dark:text-orange-300 border-orange-300 dark:border-orange-700'
                     : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
                 }`}>
-                  {activeTab === 'GROQ' ? 'Llama 3.3 LPU' : 'Live Engine'}
+                  {activeTab === 'GROQ' ? 'GPT OSS 120B' : 'Live Engine'}
                 </span>
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -187,9 +190,9 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                 <label className="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px] flex items-center space-x-1.5">
                   <Zap className="w-3.5 h-3.5 text-orange-500" />
                   <span>Groq API Key (LPU)</span>
-                  {hasEnvGroqKey && !groqKeyInput && (
+                  {hasServerGroqKey && !groqKeyInput && (
                     <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono font-medium">
-                      (Defaulting to Environment Key)
+                      (Using server .env key)
                     </span>
                   )}
                 </label>
@@ -233,9 +236,9 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
               <div className="flex items-center justify-between">
                 <label className="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px] flex items-center space-x-1.5">
                   <span>Gemini API Key</span>
-                  {hasEnvKey && !apiKeyInput && (
+                  {hasServerGeminiKey && !apiKeyInput && (
                     <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono font-medium">
-                      (Defaulting to Environment Key)
+                      (Using server environment key)
                     </span>
                   )}
                 </label>
@@ -270,7 +273,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                 </button>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Your key is saved locally in your browser session for live evaluation and is never persisted to external databases.
+                Browser-entered keys are saved in this browser's local storage and sent directly to Google. Use the server .env key to avoid exposing your key in browser requests.
               </p>
             </div>
           )}
@@ -322,7 +325,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
           <button
             type="button"
             onClick={handleTestConnection}
-            disabled={isTesting || (activeTab === 'GEMINI' ? (!apiKeyInput && !hasEnvKey) : (!groqKeyInput && !hasEnvGroqKey))}
+            disabled={isTesting || (activeTab === 'GROQ' && !groqKeyInput && !hasServerGroqKey)}
             className="flex items-center space-x-1.5 px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 disabled:opacity-50 transition cursor-pointer"
           >
             <Activity className={`w-3.5 h-3.5 ${activeTab === 'GROQ' ? 'text-orange-500' : 'text-purple-600'} ${isTesting ? 'animate-spin' : ''}`} />

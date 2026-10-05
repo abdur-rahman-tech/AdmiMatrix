@@ -201,7 +201,7 @@ Judges and administrators can upload physical admission gazettes, newspaper meri
 * Detects discrepancies or arithmetic tampering with actionable recommendations for the Registrar's Office.
 
 ### 8.4 Hackathon Judge 3-Step Live AI Verification
-1. **Configure Key:** Click the **"AI Key"** button in the top navigation bar. Enter your Google Gemini API Key and click **"Test Connection"** to verify the live ping. (Or provide `VITE_GEMINI_API_KEY` in `.env`).
+1. **Configure Keys:** Add `GROQ_API_KEY=your_real_key_here` and/or `GEMINI_API_KEY=your_real_key_here` to the ignored `.env` file and restart the server. Select the Groq GPT OSS 120B model in **Ask AI** to use Groq (`openai/gpt-oss-120b`). Alternatively, enter a browser-local key in **AI Settings** and click **"Test Connection"**.
 2. **Execute Live Query:** Click the **"Ask AI"** tab in the navigation bar. Select a judge quick-test prompt or type any question. Observe live execution telemetry (Model: `gemini-2.5-flash`, Latency: ~500ms, Urdu translation).
 3. **Run Live Executive Briefing:** Navigate to the **"Forecast"** tab, scroll to the bottom decision-support card, and click **"Generate Live Gemini Briefing"** to see live AI policy reasoning generated from the active mathematical model output.
 
@@ -236,15 +236,25 @@ cd adminatrix
 # 2. Install dependencies
 npm install
 
-# 3. Start development server (running on port 3000)
+# 3. Add the provider key(s) you use to the ignored local .env file:
+#    GROQ_API_KEY=your_real_key_here
+#    GEMINI_API_KEY=your_real_key_here
+#    Never use a VITE_ prefix; VITE_ values are bundled into browser code.
+
+# 4. Start development server (running on port 3000)
 npm run dev
 
-# 4. Verify TypeScript and linting (zero errors expected)
+# 5. Verify TypeScript and linting
 npm run lint
 
-# 5. Build production bundle
+# 6. Build production bundle
 npm run build
+
+# 7. Serve the production build with the server-side AI proxy
+npm start
 ```
+
+Gemini and Groq keys are read only by the server-side AI proxy; they are not embedded in the Vite bundle. The optional API key settings UI accepts browser-local overrides, which are stored in local storage and sent from the browser directly to the provider. Prefer `GEMINI_API_KEY` and `GROQ_API_KEY` in `.env` for server-managed keys.
 
 ---
 
