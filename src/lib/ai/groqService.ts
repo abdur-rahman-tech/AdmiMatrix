@@ -320,8 +320,18 @@ Respond with a complete, valid JSON object containing:
   const latencyMs = Date.now() - startTime;
 
   if (!res.ok) {
-    const errBody = await res.json().catch(() => ({}));
-    const errDetail = errBody?.error || errBody?.message || `HTTP ${res.status}: ${res.statusText}`;
+    const responseText = await res.text();
+    let errBody: { error?: string; message?: string } = {};
+    try {
+      errBody = JSON.parse(responseText);
+    } catch {
+      // Non-JSON responses usually come from a static host that did not route /api to the proxy.
+    }
+    const errDetail = errBody.error || errBody.message || (
+      res.status === 404
+        ? 'The Groq API proxy returned 404. Run the app with its Node/Vite server so /api/ai/groq is routed to the backend.'
+        : `HTTP ${res.status}: ${res.statusText}`
+    );
     throw new Error(errDetail);
   }
 

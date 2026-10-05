@@ -24,10 +24,6 @@ import {
 import { AdmissionRecord, PopulationRecord, ForecastResult } from '../../types';
 import {
   queryInstitutionalAI,
-  getPreferredGroqModel,
-  setPreferredGroqModel,
-  GroqModelId,
-  GROQ_MODELS,
   StructuredAiResponse
 } from '../../lib/ai/aiService';
 import { ApiKeyModal } from '../ai/ApiKeyModal';
@@ -47,7 +43,6 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
   onOpenDevSettings
 }) => {
   const [question, setQuestion] = useState('');
-  const [selectedModel, setSelectedModel] = useState<GroqModelId>(getPreferredGroqModel());
   const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
   const [hasServerGroqKey, setHasServerGroqKey] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -144,11 +139,6 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
     'What is the relationship between Chitral 2023 Digital Census population and university admissions?'
   ];
 
-  const handleModelChange = (model: GroqModelId) => {
-    setSelectedModel(model);
-    setPreferredGroqModel(model);
-  };
-
   const handleAskQuery = async (queryText: string) => {
     if (!queryText.trim()) return;
 
@@ -156,9 +146,7 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
     setErrorMessage(null);
 
     try {
-      const res = await queryInstitutionalAI(queryText, admissionsData, populationData, forecastResult, {
-        model: selectedModel
-      });
+      const res = await queryInstitutionalAI(queryText, admissionsData, populationData, forecastResult);
       setQueryResponses(prev => [{ question: queryText, response: res }, ...prev]);
       setQuestion('');
     } catch (err: any) {
@@ -244,18 +232,6 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
               <span>Ask Anything About Chitral Demographics or Admissions</span>
             </span>
 
-            {/* Model Selector */}
-            <div className="flex items-center space-x-2">
-              <span className="text-[11px] text-slate-400 font-medium">Model:</span>
-              <select
-                value={selectedModel}
-                onChange={e => handleModelChange(e.target.value as GroqModelId)}
-                className="py-1 px-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"
-              >
-                <option value="openai/gpt-oss-120b">GPT OSS 120B (Recommended)</option>
-                <option value="openai/gpt-oss-20b">GPT OSS 20B (Fast Instant)</option>
-              </select>
-            </div>
           </div>
 
           <form
