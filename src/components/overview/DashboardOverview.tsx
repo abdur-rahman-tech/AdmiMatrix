@@ -344,19 +344,19 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
         <div
           onClick={() => onNavigate('ai-assistant')}
-          className="p-5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs hover:border-amber-400 dark:hover:border-amber-500 hover:shadow-md hover:-translate-y-1 active:scale-[0.99] transition-all duration-300 ease-out cursor-pointer group"
+          className="p-5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs hover:border-orange-400 dark:hover:border-orange-500 hover:shadow-md hover:-translate-y-1 active:scale-[0.99] transition-all duration-300 ease-out cursor-pointer group"
         >
           <div className="flex items-center justify-between">
-            <div className="p-2.5 rounded-lg bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-400 transition-all duration-300 ease-out group-hover:scale-110 group-hover:bg-purple-100 dark:group-hover:bg-purple-900/60 group-hover:shadow-xs">
+            <div className="p-2.5 rounded-lg bg-orange-50 text-orange-600 dark:bg-orange-950/60 dark:text-orange-400 transition-all duration-300 ease-out group-hover:scale-110 group-hover:bg-orange-100 dark:group-hover:bg-orange-900/60 group-hover:shadow-xs">
               <Sparkles className="w-5 h-5 transition-transform duration-300 group-hover:rotate-3" />
             </div>
-            <ArrowRight className="w-4 h-4 text-slate-400 transition-all duration-300 ease-out group-hover:text-purple-600 dark:group-hover:text-purple-400 group-hover:translate-x-1.5" />
+            <ArrowRight className="w-4 h-4 text-slate-400 transition-all duration-300 ease-out group-hover:text-orange-600 dark:group-hover:text-orange-400 group-hover:translate-x-1.5" />
           </div>
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white mt-3.5 transition-colors duration-200 group-hover:text-purple-600 dark:group-hover:text-purple-400">
-            Ask AI &amp; Vision
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white mt-3.5 transition-colors duration-200 group-hover:text-orange-600 dark:group-hover:text-orange-400">
+            Ask AI Assistant
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 transition-colors duration-200 group-hover:text-slate-700 dark:group-hover:text-slate-300">
-            Evidence-grounded Gemini intelligence &amp; gazette scanner.
+            Evidence-grounded Groq LPU institutional intelligence &amp; demographic reasoning.
           </p>
         </div>
       </div>

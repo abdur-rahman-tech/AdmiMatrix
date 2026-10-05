@@ -2,8 +2,9 @@
  * Groq AI Service for AdmiMatrix
  * 
  * High-Throughput, Low-Latency LPU Inference via Groq Cloud API:
- * - Open-weight reasoning: openai/gpt-oss-120b and openai/gpt-oss-20b
- * - Alternative reasoning model: qwen/qwen3.8-27b
+ * - Primary Fast & Deep Reasoning: openai/gpt-oss-120b
+ * - Low-latency Efficient Reasoning: openai/gpt-oss-20b
+ * - Alternative Open-Weight Reasoning: qwen/qwen3.8-27b
  * 
  * Strict Grounding Architecture:
  * - Answers strictly grounded in the active mathematical forecast record in the app
@@ -21,17 +22,43 @@ export type GroqModelId =
   | 'openai/gpt-oss-20b'
   | 'qwen/qwen3.8-27b';
 
+export const GROQ_MODELS: GroqModelId[] = [
+  'openai/gpt-oss-120b',
+  'openai/gpt-oss-20b',
+  'qwen/qwen3.8-27b'
+];
+
 const GROQ_PREFERRED_MODEL_KEY = 'adminatrix_preferred_groq_model';
+const GROQ_API_KEY_STORAGE_KEY = 'adminatrix_groq_api_key';
+
+export function getGroqApiKey(): string {
+  if (typeof window === 'undefined') return '';
+  return localStorage.getItem(GROQ_API_KEY_STORAGE_KEY)?.trim() || '';
+}
+
+export function setGroqApiKey(key: string): void {
+  if (typeof window !== 'undefined') {
+    const trimmed = key.trim();
+    if (trimmed) {
+      localStorage.setItem(GROQ_API_KEY_STORAGE_KEY, trimmed);
+    } else {
+      localStorage.removeItem(GROQ_API_KEY_STORAGE_KEY);
+    }
+  }
+}
+
+export function clearGroqApiKey(): void {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(GROQ_API_KEY_STORAGE_KEY);
+  }
+}
 
 export function getPreferredGroqModel(): GroqModelId {
   const local = typeof window !== 'undefined' ? localStorage.getItem(GROQ_PREFERRED_MODEL_KEY) : null;
   const normalized = local?.replace(/^groq:/, '').trim();
-  if (normalized && ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b'].includes(normalized)) {
+  if (normalized && GROQ_MODELS.includes(normalized as GroqModelId)) {
     return normalized as GroqModelId;
   }
-
-  export const getPreferredModel = getPreferredGroqModel;
-  export const setPreferredModel = setPreferredGroqModel;
   return 'openai/gpt-oss-120b';
 }
 
@@ -41,19 +68,35 @@ export function setPreferredGroqModel(model: GroqModelId): void {
   }
 }
 
+export const getPreferredModel = getPreferredGroqModel;
+export const setPreferredModel = setPreferredGroqModel;
+
 /**
  * Tests connection to Groq API
  */
 export async function testGroqConnection(
-  model: GroqModelId = getPreferredGroqModel()
+  model: GroqModelId = getPreferredGroqModel(),
+  apiKeyToTest?: string
 ): Promise<{ success: boolean; message: string; model?: string; latencyMs?: number }> {
   const startTime = Date.now();
+  const effectiveKey = (apiKeyToTest || getGroqApiKey()).trim();
+
   try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (effectiveKey) {
+      headers['x-groq-api-key'] = effectiveKey;
+    }
+
     const response = await fetch('/api/ai/groq', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'test', model })
+      headers,
+      body: JSON.stringify({
+        action: 'test',
+        model,
+        apiKey: effectiveKey || undefined
+      })
     });
+
     const result = await response.json();
     if (!response.ok) {
       return {
@@ -72,6 +115,43 @@ export async function testGroqConnection(
 }
 
 /**
+ * Validates and saves Groq API key to server and local storage
+ */
+export async function saveGroqApiKey(
+  apiKey: string
+): Promise<{ success: boolean; message: string; latencyMs?: number }> {
+  const trimmed = apiKey.trim();
+  if (!trimmed) {
+    clearGroqApiKey();
+    return { success: false, message: 'Please provide a valid Groq API key.' };
+  }
+
+  try {
+    const response = await fetch('/api/ai/save-key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey: trimmed })
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      return { success: false, message: data.error || 'Failed to save Groq API key.' };
+    }
+
+    // Persist in browser local storage as well
+    setGroqApiKey(trimmed);
+    return { success: true, message: data.message || 'Groq API Key verified and saved successfully.' };
+  } catch (err) {
+    // If backend is unreachable, still save to local storage
+    setGroqApiKey(trimmed);
+    return {
+      success: true,
+      message: 'Key saved to browser storage (server environment could not be updated directly).'
+    };
+  }
+}
+
+/**
  * Constructs evidence grounded strictly in the active mathematical forecast record in the app
  */
 export function buildForecastGroundingContext(
@@ -84,10 +164,6 @@ export function buildForecastGroundingContext(
 
   const firstAdm = sortedAdm[0];
   const latestAdm = sortedAdm[sortedAdm.length - 1];
-  const adm2022 = sortedAdm.find(a => a.startYear === 2022);
-  const adm2023 = sortedAdm.find(a => a.startYear === 2023);
-  const parityAdm = sortedAdm.find(a => a.femaleAdmissionRatio >= 50.0);
-  const censusRec = sortedPop.find(p => p.year === 2023) || sortedPop[sortedPop.length - 1];
 
   let forecastSummary = 'No active forecast calculated.';
   if (currentForecast) {
@@ -185,7 +261,7 @@ export async function queryGroqInstitutionalAI(
   }
 ): Promise<StructuredAiResponse> {
   const startTime = Date.now();
-  const apiKey = '';
+  const apiKey = getGroqApiKey();
 
   const chosenModel = options?.model || getPreferredGroqModel();
   const groundingContext = buildForecastGroundingContext(admissions, population, currentForecast);
@@ -198,7 +274,7 @@ STRICT ZERO-HALLUCINATION & FORECAST RECORD RULES:
 1. All mathematical forecasts, backtest metrics (MAE, RMSE, MAPE), and capacity limits have ALREADY been deterministically computed by AdmiMatrix's local statistical engine. YOU MUST CITE THEM EXACTLY. NEVER invent, re-calculate, or alter any numbers.
 2. In your answer, explicitly name the active statistical model (e.g. "${currentForecast?.modelName || 'Statistical Engine'}") and cite its validation error metrics (RMSE: ${currentForecast?.metrics.rmse || 'N/A'}, MAPE: ${currentForecast?.metrics.mape || 'N/A'}%).
 3. Explicitly separate "Verified Historical Evidence" (empirical historical admissions or census data) from "Forecast Projections & Planning Hypotheses" (future model predictions).
-4. NEVER cite invented numbers such as "79", "193", or an imaginary "2022-2023 trough".
+4. NEVER cite invented synthetic numbers.
 5. Provide a natural, culturally accurate Urdu translation summary ("urduTranslation") alongside the English executive analysis to support regional stakeholders in Khyber Pakhtunkhwa.
 6. Provide structured source citations acknowledging PBS Census records and UOCH Admission Directorate archives.
 7. Return your response strictly as a valid JSON object matching the requested schema.
@@ -222,20 +298,26 @@ Respond with a complete, valid JSON object containing:
 - sourceCitations: An array of expandable source citations [{ "name": "...", "type": "...", "detail": "...", "verified": true }].
 `;
 
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (apiKey) {
+    headers['x-groq-api-key'] = apiKey;
+  }
+
   const res = await fetch('/api/ai/groq', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`
-    },
+    headers,
     body: JSON.stringify({
       model: chosenModel,
-      messages: [
-        { role: 'system', content: systemInstruction },
-        { role: 'user', content: userPrompt }
-      ],
-      temperature: 0.1,
-      response_format: { type: 'json_object' }
+      apiKey: apiKey || undefined,
+      payload: {
+        messages: [
+          { role: 'system', content: systemInstruction },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: 0.1,
+        response_format: { type: 'json_object' },
+        max_tokens: 3500
+      }
     })
   });
 
@@ -243,8 +325,8 @@ Respond with a complete, valid JSON object containing:
 
   if (!res.ok) {
     const errBody = await res.json().catch(() => ({}));
-    const errDetail = errBody?.error?.message || `HTTP ${res.status}: ${res.statusText}`;
-    throw new Error(`Groq API Error (${chosenModel}): ${errDetail}`);
+    const errDetail = errBody?.error || errBody?.message || `HTTP ${res.status}: ${res.statusText}`;
+    throw new Error(errDetail);
   }
 
   const groqJson = await res.json();
@@ -268,8 +350,6 @@ Respond with a complete, valid JSON object containing:
   }
 
   const sortedAdm = [...admissions].sort((a, b) => a.startYear - b.startYear);
-  const first = sortedAdm[0];
-  const latest = sortedAdm[sortedAdm.length - 1];
   const parity = sortedAdm.find(a => a.femaleAdmissionRatio >= 50.0);
 
   // Fallback defaults if model omitted any fields
@@ -319,7 +399,6 @@ Respond with a complete, valid JSON object containing:
     }
   ];
 
-  // Clean legacy synthetic numbers if model generated any
   let recommendation = parsed.planningRecommendation || '';
   let answer = parsed.executiveAnswer || '';
 

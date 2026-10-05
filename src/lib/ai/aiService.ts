@@ -1,9 +1,36 @@
 import { AdmissionRecord, PopulationRecord, ForecastResult } from '../../types';
 import { StructuredAiResponse } from './aiTypes';
-import { GroqModelId, queryGroqInstitutionalAI } from './groqService';
+import {
+  GroqModelId,
+  GROQ_MODELS,
+  getPreferredGroqModel,
+  setPreferredGroqModel,
+  getPreferredModel,
+  setPreferredModel,
+  getGroqApiKey,
+  setGroqApiKey,
+  clearGroqApiKey,
+  saveGroqApiKey,
+  testGroqConnection,
+  queryGroqInstitutionalAI
+} from './groqService';
 
 export type AiModelId = GroqModelId;
 export type { StructuredAiResponse } from './aiTypes';
+export type { GroqModelId };
+export {
+  GROQ_MODELS,
+  getPreferredGroqModel,
+  setPreferredGroqModel,
+  getPreferredModel,
+  setPreferredModel,
+  getGroqApiKey,
+  setGroqApiKey,
+  clearGroqApiKey,
+  saveGroqApiKey,
+  testGroqConnection,
+  queryGroqInstitutionalAI
+};
 
 export interface VisionDocumentAnalysis {
   documentTitle: string;
@@ -23,9 +50,10 @@ export function queryInstitutionalAI(
   admissions: AdmissionRecord[],
   population: PopulationRecord[],
   forecast: ForecastResult | null,
-  options?: { model?: GroqModelId }
+  options?: { model?: GroqModelId; preferredModel?: string }
 ): Promise<StructuredAiResponse> {
-  return queryGroqInstitutionalAI(question, admissions, population, forecast, options);
+  const modelToUse = (options?.model || (options?.preferredModel as GroqModelId) || getPreferredGroqModel());
+  return queryGroqInstitutionalAI(question, admissions, population, forecast, { model: modelToUse });
 }
 
 export async function analyzeAdmissionDocumentImage(
@@ -33,5 +61,5 @@ export async function analyzeAdmissionDocumentImage(
   _mimeType: string,
   _notes: string
 ): Promise<VisionDocumentAnalysis> {
-  throw new Error('Image analysis is not supported by the configured Groq text models.');
+  throw new Error('Image analysis was removed in favor of high-speed Groq LPU text and mathematical reasoning.');
 }

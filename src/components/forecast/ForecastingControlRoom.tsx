@@ -42,7 +42,7 @@ import {
   ForecastScenario
 } from '../../types';
 import { generateForecast } from '../../lib/ml/forecastingEngine';
-import { queryInstitutionalAI, StructuredAiResponse } from '../../lib/ai/geminiService';
+import { queryInstitutionalAI, StructuredAiResponse } from '../../lib/ai/aiService';
 import { ApiKeyModal } from '../ai/ApiKeyModal';
 import { AiBriefingSkeleton } from '../common/SkeletonLoader';
 
@@ -96,7 +96,7 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
   const [showPredictionBands, setShowPredictionBands] = useState<boolean>(true);
   const [isScorecardExpanded, setIsScorecardExpanded] = useState<boolean>(false);
 
-  // Live Gemini AI Briefing State
+  // Live Groq AI Briefing State
   const [isAiGenerating, setIsAiGenerating] = useState<boolean>(false);
   const [liveAiBriefing, setLiveAiBriefing] = useState<StructuredAiResponse | null>(null);
   const [aiBriefingError, setAiBriefingError] = useState<string | null>(null);
@@ -125,15 +125,14 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
         prompt,
         admissionsData,
         populationData,
-        forecastResult,
-        { preferredModel: 'gemini-3.8-flash' }
+        forecastResult
       );
       setLiveAiBriefing(result);
     } catch (err: any) {
-      if (err?.message?.includes('MISSING_API_KEY')) {
+      if (err?.message?.includes('MISSING_API_KEY') || err?.message?.includes('MISSING_GROQ_KEY')) {
         setIsKeyModalOpen(true);
       } else {
-        setAiBriefingError(err?.message || 'Error generating live AI briefing.');
+        setAiBriefingError(err?.message || 'Error generating live Groq AI briefing.');
       }
     } finally {
       setIsAiGenerating(false);
@@ -1128,17 +1127,17 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
         </div>
       )}
 
-      {/* Institutional Decision-Support Grounded Summary & Live Gemini AI Briefing */}
+      {/* Institutional Decision-Support Grounded Summary & Live Groq AI Briefing */}
       <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center space-x-2">
             <ShieldAlert className="w-5 h-5 text-amber-500" />
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                Decision-Support Planning Guidance &amp; Live AI Briefing
+                Decision-Support Planning Guidance &amp; Live Groq Briefing
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Deterministic mathematical baseline paired with real-time Google Gemini 2.5 intelligence.
+                Deterministic mathematical baseline paired with real-time Groq LPU open-weight intelligence.
               </p>
             </div>
           </div>
@@ -1147,17 +1146,17 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
             type="button"
             onClick={handleGenerateLiveAiBriefing}
             disabled={isAiGenerating}
-            className="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs transition cursor-pointer shadow-xs active:scale-95 disabled:opacity-50 shrink-0"
+            className="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs transition cursor-pointer shadow-xs active:scale-95 disabled:opacity-50 shrink-0"
           >
             {isAiGenerating ? (
               <>
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                <span>Generating Live Briefing...</span>
+                <span>Generating Live Groq Briefing...</span>
               </>
             ) : (
               <>
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Generate Live Gemini Briefing</span>
+                <span>Generate Live Groq Briefing</span>
               </>
             )}
           </button>
@@ -1170,16 +1169,16 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
           </div>
         )}
 
-        {/* Live Gemini AI Briefing Output (When Generated) */}
+        {/* Live Groq AI Briefing Output (When Generated) */}
         {!isAiGenerating && liveAiBriefing && (
-          <div className="p-5 rounded-2xl bg-purple-50/60 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/80 space-y-4 transition-all">
-            <div className="flex items-center justify-between pb-2 border-b border-purple-200/60 dark:border-purple-900/60">
-              <span className="text-xs font-bold text-purple-900 dark:text-purple-200 flex items-center space-x-1.5 uppercase tracking-wider">
-                <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-                <span>Live Gemini Executive Synthesis</span>
+          <div className="p-5 rounded-2xl bg-orange-50/50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800/80 space-y-4 transition-all">
+            <div className="flex items-center justify-between pb-2 border-b border-orange-200/60 dark:border-orange-900/60">
+              <span className="text-xs font-bold text-orange-900 dark:text-orange-200 flex items-center space-x-1.5 uppercase tracking-wider">
+                <Sparkles className="w-3.5 h-3.5 text-orange-500" />
+                <span>Live Groq Executive Synthesis</span>
               </span>
               <div className="flex items-center space-x-2 text-[10px] font-mono">
-                <span className="px-2 py-0.5 rounded bg-purple-200 dark:bg-purple-900 text-purple-800 dark:text-purple-200 font-bold">
+                <span className="px-2 py-0.5 rounded bg-orange-200 dark:bg-orange-900/70 text-orange-800 dark:text-orange-200 font-bold">
                   {liveAiBriefing.meta.modelUsed}
                 </span>
                 <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 font-bold">
@@ -1193,8 +1192,8 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
             </p>
 
             {liveAiBriefing.urduTranslation && (
-              <div className="p-3.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-purple-200 dark:border-purple-900 space-y-1">
-                <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 flex items-center space-x-1">
+              <div className="p-3.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-orange-200 dark:border-orange-900/60 space-y-1">
+                <span className="text-[11px] font-bold text-orange-700 dark:text-orange-300 flex items-center space-x-1">
                   <Languages className="w-3.5 h-3.5" />
                   <span>اردو خلاصہ (Urdu Regional Briefing)</span>
                 </span>

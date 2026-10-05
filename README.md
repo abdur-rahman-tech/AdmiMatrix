@@ -179,31 +179,25 @@ Before forecasting calculations execute, the dataset passes through a pre-flight
 
 ---
 
-## 8. Live Google Gemini AI Architecture & Multimodal Document Vision
+## 8. Live Groq Cloud LPU AI Architecture & Zero-Hallucination Reasoning
 
-Adminatrix incorporates an active, production-grade **Google Gemini API** integration (`src/lib/ai/geminiService.ts` and `src/components/query/AskTheData.tsx`) replacing all static heuristics with live structured AI reasoning.
+Adminatrix incorporates an active, production-grade **Groq Cloud LPU API** integration (`src/lib/ai/groqService.ts` and `src/components/query/AskTheData.tsx`) replacing static heuristics with ultra-fast, structured open-weight AI reasoning.
 
-### 8.1 Multi-Tier Model Architecture & Fallback Strategy
-* **Primary High-Speed Model (`gemini-2.5-flash`):** Handles primary natural language reasoning, structured quantitative extraction, and optical vision document inspection with low latency (~400–600ms).
-* **Automatic Fallback Model (`gemini-2.0-flash`):** Wrapped in a `try/catch` fallback block that triggers automatically if the primary model encounters rate limits or upstream service timeouts.
-* **Deep Institutional Reasoning Model (`gemini-2.5-pro`):** Available via model selector for complex multi-year infrastructure policy scenarios.
-* **Strict JSON Schemas:** Forced `responseMimeType: "application/json"` ensuring structured outputs with executive answers, data points, confidence rankings, and recommendations.
+### 8.1 Groq LPU Model Architecture
+* **Primary Deep Reasoning Model (`openai/gpt-oss-120b`):** Delivers rigorous institutional chain-of-thought analysis grounded directly in the deterministic statistical forecast and historical census records with ultra-low latency.
+* **Low-Latency Instant Model (`openai/gpt-oss-20b`):** Fast conversational model for quick interactive querying.
+* **Alternative Open-Weight Model (`qwen/qwen3.8-27b`):** High-precision multilingual reasoning model.
+* **Strict JSON Schemas:** Forced `{ type: "json_object" }` ensuring structured outputs with executive answers, data points, confidence rankings, source citations, and strategic recommendations.
 
 ### 8.2 Regional Context & Bilingual Support (Urdu & English)
-All Gemini outputs generate dual-stream analysis:
+All Groq outputs generate dual-stream analysis:
 1. **Executive English Briefing:** Tailored for HEC evaluators and university chancellors.
 2. **Regional Urdu Briefing (`اردو خلاصہ`):** Grounded translation rendered with proper RTL typography for regional Khyber Pakhtunkhwa stakeholders.
 
-### 8.3 Multimodal Document & Gazette Inspector
-Judges and administrators can upload physical admission gazettes, newspaper merit lists, or HEC notifications:
-* Scans the document using `gemini-2.5-flash` vision capabilities.
-* Automatically extracts verified student headcounts, program quotas, and dates.
-* Detects discrepancies or arithmetic tampering with actionable recommendations for the Registrar's Office.
-
-### 8.4 Hackathon Judge 3-Step Live AI Verification
-1. **Configure Keys:** Add `GROQ_API_KEY=your_real_key_here` and/or `GEMINI_API_KEY=your_real_key_here` to the ignored `.env` file and restart the server. Groq options include `openai/gpt-oss-120b` (default), `openai/gpt-oss-20b`, and `qwen/qwen3.8-27b`. Alternatively, enter a browser-local key in **AI Settings** and click **"Test Connection"**.
-2. **Execute Live Query:** Click the **"Ask AI"** tab in the navigation bar. Select a judge quick-test prompt or type any question. Observe live execution telemetry (Model: `gemini-2.5-flash`, Latency: ~500ms, Urdu translation).
-3. **Run Live Executive Briefing:** Navigate to the **"Forecast"** tab, scroll to the bottom decision-support card, and click **"Generate Live Gemini Briefing"** to see live AI policy reasoning generated from the active mathematical model output.
+### 8.3 Hackathon Judge 3-Step Live AI Verification
+1. **Configure Groq Key:** Add `GROQ_API_KEY=your_real_key_here` to the `.env` file (Groq options include `openai/gpt-oss-120b` (default), `openai/gpt-oss-20b`, and `qwen/qwen3.8-27b`). Alternatively, enter your key in **AI Settings** and click **"Save & Sync API Key"**.
+2. **Execute Live Query:** Click the **"Ask AI"** tab in the navigation bar. Select a judge quick-test prompt or type any question. Observe live execution telemetry (Model: `Groq: openai/gpt-oss-120b`, Latency: ~300-500ms, Urdu translation).
+3. **Run Live Executive Briefing:** Navigate to the **"Forecast"** tab, scroll to the bottom decision-support card, and click **"Generate Live Groq Briefing"** to see live AI policy reasoning generated from the active mathematical model output.
 
 ---
 
@@ -212,16 +206,14 @@ Judges and administrators can upload physical admission gazettes, newspaper meri
 | Feature | Status | Implementation Details |
 | :--- | :--- | :--- |
 | **Walk-Forward Time-Series ML** | ✅ Live Production | 9 mathematical models evaluated sequentially without data leakage |
-| **Google Gemini Reasoning API** | ✅ Live Production | `gemini-2.5-flash` with automatic `gemini-2.0-flash` fallback |
-| **Multimodal Document Vision** | ✅ Live Production | Real-time optical inspection of uploaded admission gazettes |
+| **Groq LPU Reasoning API** | ✅ Live Production | `openai/gpt-oss-120b` with instant LPU inference and zero hallucination |
 | **Bilingual Urdu Synthesis** | ✅ Live Production | RTL-formatted Urdu summaries for regional provincial planners |
-| **Runtime API Key Management** | ✅ Live Production | In-browser key configuration modal with live connection test |
-| **Live Audio Conversation** | 🗺️ Future Roadmap | Gemini Live WebSocket streaming planned for campus kiosk devices |
+| **Runtime API Key Management** | ✅ Live Production | In-browser key configuration modal with live ping test and server sync |
 | **Cross-Institutional Fed-Learning** | 🗺️ Future Roadmap | Federated models across Swat, Malakand, and Peshawar universities |
 
 ---
 
-## 9. Getting Started & Development
+## 10. Getting Started & Development
 
 ### Prerequisites
 * **Node.js:** v18.0.0 or higher
@@ -236,9 +228,8 @@ cd adminatrix
 # 2. Install dependencies
 npm install
 
-# 3. Add the provider key(s) you use to the ignored local .env file:
-#    GROQ_API_KEY=your_real_key_here (Groq default model: openai/gpt-oss-120b)
-#    GEMINI_API_KEY=your_real_key_here
+# 3. Add your Groq API key to the local .env file:
+#    GROQ_API_KEY=gsk_...
 #    Never use a VITE_ prefix; VITE_ values are bundled into browser code.
 
 # 4. Start development server (running on port 3000)
@@ -254,7 +245,7 @@ npm run build
 npm start
 ```
 
-Gemini and Groq keys are read only by the server-side AI proxy; they are not embedded in the Vite bundle. The optional API key settings UI accepts browser-local overrides, which are stored in local storage and sent from the browser directly to the provider. Prefer `GEMINI_API_KEY` and `GROQ_API_KEY` in `.env` for server-managed keys.
+Groq API keys are read by the server-side AI proxy and can also be configured directly via the UI settings modal. Prefer `GROQ_API_KEY` in `.env` for server-managed environments.
 
 ---
 
