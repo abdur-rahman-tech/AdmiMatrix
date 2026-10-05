@@ -13,6 +13,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ENV_PATH = path.resolve(__dirname, '..', '.env');
 
+function getConfiguredGroqApiKey() {
+  return (process.env.GROQ_API_KEY || process.env['GROQ-API-KEY'] || '').trim();
+}
+
 function sendJson(res, status, body) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -115,7 +119,7 @@ export function createAiProxyMiddleware() {
     if (req.method === 'GET' && pathname === '/api/ai/config') {
       if (!isSameOrigin(req)) return sendJson(res, 403, { error: 'Cross-origin requests are not allowed.' });
       return sendJson(res, 200, {
-        groqConfigured: Boolean(process.env.GROQ_API_KEY?.trim()),
+        groqConfigured: Boolean(getConfiguredGroqApiKey()),
         defaultModel: 'openai/gpt-oss-120b',
         supportedModels: Array.from(GROQ_MODELS)
       });
@@ -173,7 +177,7 @@ export function createAiProxyMiddleware() {
       // Check key from body, headers, or environment
       const clientHeaderKey = typeof req.headers['x-groq-api-key'] === 'string' ? req.headers['x-groq-api-key'].trim() : '';
       const clientBodyKey = typeof body.apiKey === 'string' ? body.apiKey.trim() : '';
-      const apiKey = clientBodyKey || clientHeaderKey || process.env.GROQ_API_KEY?.trim();
+      const apiKey = clientBodyKey || clientHeaderKey || getConfiguredGroqApiKey();
 
       if (!apiKey) {
         return sendJson(res, 503, {
