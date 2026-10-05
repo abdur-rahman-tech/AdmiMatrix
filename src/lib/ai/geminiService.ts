@@ -22,11 +22,9 @@ export type GeminiModelId =
   | 'gemini-flash-latest'
   | 'gemini-3.1-flash-lite'
   | 'gemini-3.1-pro-preview'
-  | 'groq:llama-3.3-70b-versatile'
-  | 'groq:llama-3.1-8b-instant'
-  | 'groq:mixtral-8x7b-32768'
   | 'groq:openai/gpt-oss-120b'
-  | 'groq:openai/gpt-oss-20b';
+  | 'groq:openai/gpt-oss-20b'
+  | 'groq:qwen/qwen3.8-27b';
 
 export interface VerifiedEvidenceItem {
   fact: string;
@@ -129,14 +127,12 @@ export function getPreferredModel(): GeminiModelId {
       'gemini-3.1-pro-preview',
       'groq:openai/gpt-oss-120b',
       'groq:openai/gpt-oss-20b',
-      'groq:llama-3.3-70b-versatile',
-      'groq:llama-3.1-8b-instant',
-      'groq:mixtral-8x7b-32768'
+      'groq:qwen/qwen3.8-27b'
     ].includes(saved)) {
       return saved;
     }
   }
-  return 'gemini-3.8-flash';
+  return 'groq:openai/gpt-oss-120b';
 }
 
 export function setPreferredModel(model: GeminiModelId): void {

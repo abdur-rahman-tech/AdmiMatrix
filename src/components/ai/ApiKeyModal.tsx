@@ -1,359 +1,107 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Key,
-  ShieldCheck,
-  AlertCircle,
-  CheckCircle2,
-  X,
-  Eye,
-  EyeOff,
-  Sparkles,
-  Zap,
-  Activity,
-  ExternalLink,
-  Layers,
-  Cpu
-} from 'lucide-react';
-import {
-  getActiveApiKey,
-  setActiveApiKey,
-  clearActiveApiKey,
-  testGeminiConnection
-} from '../../lib/ai/geminiService';
-import {
-  getActiveGroqApiKey,
-  setActiveGroqApiKey,
-  clearActiveGroqApiKey,
-  testGroqConnection
-} from '../../lib/ai/groqService';
+import React, { useEffect, useState } from 'react';
+import { AlertCircle, CheckCircle2, X } from 'lucide-react';
+import { getPreferredGroqModel, testGroqConnection } from '../../lib/ai/groqService';
 
 interface ApiKeyModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onKeySaved?: () => void;
 }
 
-export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
-  isOpen,
-  onClose,
-  onKeySaved
-}) => {
-  const [activeTab, setActiveTab] = useState<'GEMINI' | 'GROQ'>('GROQ');
-  const [apiKeyInput, setApiKeyInput] = useState('');
-  const [groqKeyInput, setGroqKeyInput] = useState('');
-  const [showKey, setShowKey] = useState(false);
+export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose }) => {
+  const [configured, setConfigured] = useState<boolean | null>(null);
   const [isTesting, setIsTesting] = useState(false);
-  const [hasServerGeminiKey, setHasServerGeminiKey] = useState(false);
-  const [hasServerGroqKey, setHasServerGroqKey] = useState(false);
-  const [testResult, setTestResult] = useState<{
-    success: boolean;
-    message: string;
-    model?: string;
-  } | null>(null);
+  const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
 
   useEffect(() => {
-    if (isOpen) {
-      setApiKeyInput(getActiveApiKey());
-      setGroqKeyInput(getActiveGroqApiKey());
-      setTestResult(null);
-      fetch('/api/ai/config')
-        .then(async response => {
-          if (!response.ok) throw new Error(`Configuration request failed (${response.status}).`);
-          const config = await response.json();
-          setHasServerGeminiKey(Boolean(config.geminiConfigured));
-          setHasServerGroqKey(Boolean(config.groqConfigured));
-        })
-        .catch(() => {
-          setHasServerGeminiKey(false);
-          setHasServerGroqKey(false);
-        });
-    }
+    if (!isOpen) return;
+    setResult(null);
+    fetch('/api/ai/config')
+      .then(async response => {
+        if (!response.ok) throw new Error(`Configuration request failed (${response.status}).`);
+        const config = await response.json();
+        setConfigured(Boolean(config.groqConfigured));
+      })
+      .catch(() => setConfigured(false));
   }, [isOpen]);
 
-  if (!isOpen) return null;
-
-  const handleSave = () => {
-    setActiveApiKey(apiKeyInput);
-    setActiveGroqApiKey(groqKeyInput);
-    if (onKeySaved) onKeySaved();
-    onClose();
-  };
-
-  const handleClear = () => {
-    if (activeTab === 'GEMINI') {
-      clearActiveApiKey();
-      setApiKeyInput('');
-    } else {
-      clearActiveGroqApiKey();
-      setGroqKeyInput('');
-    }
-    setTestResult(null);
-    if (onKeySaved) onKeySaved();
-  };
-
-  const handleTestConnection = async () => {
+  const testConnection = async () => {
     setIsTesting(true);
-    setTestResult(null);
+    setResult(null);
     try {
-      if (activeTab === 'GEMINI') {
-        const result = await testGeminiConnection(apiKeyInput.trim());
-        setTestResult(result);
-      } else {
-        const result = await testGroqConnection(groqKeyInput.trim(), 'openai/gpt-oss-120b');
-        setTestResult(result);
-      }
-    } catch (err: any) {
-      setTestResult({
-        success: false,
-        message: err?.message || 'Connection ping failed'
-      });
+      const response = await testGroqConnection(getPreferredGroqModel());
+      setResult({ success: response.success, message: response.message });
     } finally {
       setIsTesting(false);
     }
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl transition-all">
-        {/* Header */}
-        <div className="bg-slate-50 dark:bg-slate-800/80 p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-          <div className="flex items-center space-x-2.5">
-            <div className={`p-2 rounded-xl text-white shadow-xs ${activeTab === 'GROQ' ? 'bg-orange-500' : 'bg-purple-600'}`}>
-              {activeTab === 'GROQ' ? <Zap className="w-5 h-5" /> : <Key className="w-5 h-5" />}
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center space-x-2">
-                <span>{activeTab === 'GROQ' ? 'Groq LPU API Configuration' : 'Google Gemini API Configuration'}</span>
-                <span className={`text-[10px] uppercase font-mono px-2 py-0.5 rounded-full font-semibold border ${
-                  activeTab === 'GROQ'
-                    ? 'bg-orange-100 text-orange-800 dark:bg-orange-950/80 dark:text-orange-300 border-orange-300 dark:border-orange-700'
-                    : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
-                }`}>
-                  {activeTab === 'GROQ' ? 'GPT OSS 120B' : 'Live Engine'}
-                </span>
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {activeTab === 'GROQ'
-                  ? 'Ultra-low latency inference grounded strictly in the app forecast record.'
-                  : 'Hackathon judge evaluation & runtime API key management.'}
-              </p>
-            </div>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="groq-config-title"
+        className="w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5 shadow-2xl"
+      >
+        <header className="flex items-start justify-between gap-4">
+          <div>
+            <h2 id="groq-config-title" className="font-bold text-slate-900 dark:text-white">
+              Groq API configuration
+            </h2>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+              The API key is managed by the server and is not entered or stored in this browser.
+            </p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white transition cursor-pointer"
-          >
+          <button onClick={onClose} aria-label="Close" className="text-slate-500 hover:text-slate-900 dark:hover:text-white">
             <X className="w-5 h-5" />
           </button>
-        </div>
+        </header>
 
-        {/* Provider Tabs */}
-        <div className="flex border-b border-slate-200 dark:border-slate-800 bg-slate-100/60 dark:bg-slate-800/40 p-1.5 gap-1.5">
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('GROQ');
-              setTestResult(null);
-            }}
-            className={`flex-1 flex items-center justify-center space-x-2 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-              activeTab === 'GROQ'
-                ? 'bg-white dark:bg-slate-900 text-orange-600 dark:text-orange-400 shadow-xs border border-slate-200 dark:border-slate-700'
-                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-            }`}
-          >
-            <Zap className="w-3.5 h-3.5 text-orange-500" />
-            <span>Groq LPU (Llama 3.3)</span>
+        <p className="mt-5 text-sm text-slate-700 dark:text-slate-200">
+          {configured === null
+            ? 'Checking server configuration…'
+            : configured
+              ? 'GROQ_API_KEY is configured on the server.'
+              : 'GROQ_API_KEY is not configured. Add it to the ignored .env file and restart the server.'}
+        </p>
+
+        <a
+          href="https://console.groq.com/keys"
+          target="_blank"
+          rel="noreferrer"
+          className="mt-2 inline-block text-sm text-orange-600 dark:text-orange-400 hover:underline"
+        >
+          Manage Groq API keys
+        </a>
+
+        <div className="mt-5 flex justify-end gap-2">
+          <button onClick={onClose} className="rounded-lg px-3 py-2 text-sm text-slate-600 dark:text-slate-300">
+            Close
           </button>
           <button
-            type="button"
-            onClick={() => {
-              setActiveTab('GEMINI');
-              setTestResult(null);
-            }}
-            className={`flex-1 flex items-center justify-center space-x-2 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-              activeTab === 'GEMINI'
-                ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs border border-slate-200 dark:border-slate-700'
-                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-            }`}
+            onClick={testConnection}
+            disabled={isTesting || configured === false}
+            className="rounded-lg bg-orange-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
           >
-            <Key className="w-3.5 h-3.5 text-purple-600" />
-            <span>Google Gemini</span>
+            {isTesting ? 'Testing…' : 'Test connection'}
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-5 text-xs text-slate-700 dark:text-slate-300">
-          {activeTab === 'GROQ' ? (
-            /* Groq Key Input */
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px] flex items-center space-x-1.5">
-                  <Zap className="w-3.5 h-3.5 text-orange-500" />
-                  <span>Groq API Key (LPU)</span>
-                  {hasServerGroqKey && !groqKeyInput && (
-                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono font-medium">
-                      (Using server .env key)
-                    </span>
-                  )}
-                </label>
-                <a
-                  href="https://console.groq.com/keys"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-[11px] text-orange-600 dark:text-orange-400 hover:underline flex items-center space-x-1"
-                >
-                  <span>Get Free Groq Key</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
-
-              <div className="relative">
-                <input
-                  type={showKey ? 'text' : 'password'}
-                  value={groqKeyInput}
-                  onChange={e => {
-                    setGroqKeyInput(e.target.value);
-                    setTestResult(null);
-                  }}
-                  placeholder="gsk_... (Enter your Groq API key)"
-                  className="w-full pl-3 pr-10 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowKey(!showKey)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                >
-                  {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Groq answers queries strictly grounded in the active mathematical forecast model and backtest error metrics with zero hallucination.
-              </p>
-            </div>
-          ) : (
-            /* Gemini Key Input */
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px] flex items-center space-x-1.5">
-                  <span>Gemini API Key</span>
-                  {hasServerGeminiKey && !apiKeyInput && (
-                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono font-medium">
-                      (Using server environment key)
-                    </span>
-                  )}
-                </label>
-                <a
-                  href="https://aistudio.google.com/app/apikey"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-[11px] text-purple-600 dark:text-purple-400 hover:underline flex items-center space-x-1"
-                >
-                  <span>Get Free Key</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
-
-              <div className="relative">
-                <input
-                  type={showKey ? 'text' : 'password'}
-                  value={apiKeyInput}
-                  onChange={e => {
-                    setApiKeyInput(e.target.value);
-                    setTestResult(null);
-                  }}
-                  placeholder="AIzaSy... (Enter your Google Gemini API key)"
-                  className="w-full pl-3 pr-10 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowKey(!showKey)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                >
-                  {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Browser-entered keys are saved in this browser's local storage and sent directly to Google. Use the server .env key to avoid exposing your key in browser requests.
-              </p>
-            </div>
-          )}
-
-          {/* Model Architecture Stack */}
-          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-2">
-            <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px] uppercase tracking-wider flex items-center space-x-1.5">
-              <Layers className="w-3.5 h-3.5 text-purple-600" />
-              <span>Multi-Tier Model Fallback Strategy:</span>
-            </span>
-            <div className="grid grid-cols-2 gap-2 text-[11px]">
-              <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                <span className="text-[10px] text-purple-600 dark:text-purple-400 font-bold block">PRIMARY MODEL</span>
-                <span className="font-mono font-bold text-slate-900 dark:text-white">gemini-3.8-flash</span>
-                <p className="text-[10px] text-slate-400 mt-0.5">High-speed multimodal &amp; structured JSON</p>
-              </div>
-              <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold block">AUTO-FALLBACK</span>
-                <span className="font-mono font-bold text-slate-900 dark:text-white">gemini-3.1-flash-lite</span>
-                <p className="text-[10px] text-slate-400 mt-0.5">Zero-latency fallback on rate limits</p>
-              </div>
-            </div>
+        {result && (
+          <div className={`mt-4 flex gap-2 rounded-lg border p-3 text-sm ${
+            result.success
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
+              : 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300'
+          }`}>
+            {result.success
+              ? <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
+              : <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />}
+            <p>{result.message}</p>
           </div>
-
-          {/* Test Connection Result */}
-          {testResult && (
-            <div
-              className={`p-3 rounded-xl border flex items-start space-x-2.5 text-xs ${
-                testResult.success
-                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200'
-                  : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-200'
-              }`}
-            >
-              {testResult.success ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-              ) : (
-                <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
-              )}
-              <div className="space-y-0.5">
-                <p className="font-bold">{testResult.success ? 'API Key Verified' : 'Connection Failed'}</p>
-                <p className="text-[11px] leading-relaxed">{testResult.message}</p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer Actions */}
-        <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={handleTestConnection}
-            disabled={isTesting || (activeTab === 'GROQ' && !groqKeyInput && !hasServerGroqKey)}
-            className="flex items-center space-x-1.5 px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 disabled:opacity-50 transition cursor-pointer"
-          >
-            <Activity className={`w-3.5 h-3.5 ${activeTab === 'GROQ' ? 'text-orange-500' : 'text-purple-600'} ${isTesting ? 'animate-spin' : ''}`} />
-            <span>{isTesting ? 'Testing Ping...' : activeTab === 'GROQ' ? 'Test Groq LPU' : 'Test Gemini'}</span>
-          </button>
-
-          <div className="flex items-center space-x-2">
-            {(activeTab === 'GEMINI' ? apiKeyInput : groqKeyInput) && (
-              <button
-                type="button"
-                onClick={handleClear}
-                className="px-3 py-2 rounded-lg text-xs font-semibold text-slate-500 hover:text-rose-600 transition cursor-pointer"
-              >
-                Clear
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={handleSave}
-              className={`px-4 py-2 rounded-lg text-white font-bold text-xs transition cursor-pointer shadow-xs active:scale-95 ${
-                activeTab === 'GROQ' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-purple-600 hover:bg-purple-700'
-              }`}
-            >
-              Save Configuration
-            </button>
-          </div>
-        </div>
-      </div>
+        )}
+      </section>
     </div>
   );
 };

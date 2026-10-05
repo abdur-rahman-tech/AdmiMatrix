@@ -25,16 +25,12 @@ import {
 } from 'lucide-react';
 import { AdmissionRecord, PopulationRecord, ForecastResult } from '../../types';
 import {
-  queryInstitutionalAI,
+  queryGroqInstitutionalAI,
   analyzeAdmissionDocumentImage,
-  StructuredAiResponse,
   VisionDocumentAnalysis,
-  getActiveApiKey,
-  getPreferredModel,
-  setPreferredModel,
-  GeminiModelId
-} from '../../lib/ai/geminiService';
-import { getActiveGroqApiKey } from '../../lib/ai/groqService';
+} from '../../lib/ai/aiService';
+import { getPreferredGroqModel, GroqModelId, setPreferredGroqModel } from '../../lib/ai/groqService';
+import { StructuredAiResponse } from '../../lib/ai/aiTypes';
 import { ApiKeyModal } from '../ai/ApiKeyModal';
 import { AiBriefingSkeleton, CardSkeleton } from '../common/SkeletonLoader';
 
@@ -55,9 +51,8 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
 }) => {
   const [activeMode, setActiveMode] = useState<ModeTab>('QUERY');
   const [question, setQuestion] = useState('');
-  const [selectedModel, setSelectedModel] = useState<GeminiModelId>(getPreferredModel());
+  const [selectedModel, setSelectedModel] = useState<GroqModelId>(getPreferredGroqModel());
   const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
-  const [hasServerGeminiKey, setHasServerGeminiKey] = useState(false);
   const [hasServerGroqKey, setHasServerGroqKey] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -138,34 +133,28 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
     }>
   >([INITIAL_VERIFIED_BRIEFING]);
 
-  const isGroqModel = selectedModel.startsWith('groq:');
-  const activeGroqKey = getActiveGroqApiKey();
-  const activeApiKey = getActiveApiKey();
-
   useEffect(() => {
     fetch('/api/ai/config')
       .then(async response => {
         if (!response.ok) throw new Error(`Configuration request failed (${response.status}).`);
         const config = await response.json();
-        setHasServerGeminiKey(Boolean(config.geminiConfigured));
         setHasServerGroqKey(Boolean(config.groqConfigured));
       })
       .catch(() => {
-        setHasServerGeminiKey(false);
         setHasServerGroqKey(false);
       });
   }, []);
 
   const presetQueries = [
-    'Why did female student enrollment collapse to 79 (34.5%) in 2022–2023, and how is it recovering?',
-    'What was the historical female parity peak in 2018–2019 and why does current enrollment remain below it?',
+    'Summarize the female admission trend using the available historical records.',
+    'Compare the latest female admission ratio with earlier academic years.',
     'Based on the active forecast model and backtest RMSE, when will admissions exceed capacity limits?',
     'What is the relationship between Chitral 2023 Digital Census population and university admissions?'
   ];
 
-  const handleModelChange = (model: GeminiModelId) => {
+  const handleModelChange = (model: GroqModelId) => {
     setSelectedModel(model);
-    setPreferredModel(model);
+    setPreferredGroqModel(model);
   };
 
   const handleAskQuery = async (queryText: string) => {
@@ -175,8 +164,8 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
     setErrorMessage(null);
 
     try {
-      const res = await queryInstitutionalAI(queryText, admissionsData, populationData, forecastResult, {
-        preferredModel: selectedModel
+      const res = await queryGroqInstitutionalAI(queryText, admissionsData, populationData, forecastResult, {
+        model: selectedModel
       });
       setQueryResponses(prev => [{ question: queryText, response: res }, ...prev]);
       setQuestion('');
@@ -248,21 +237,15 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
           <div className="flex items-center space-x-2">
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center space-x-2">
               <Sparkles className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-              <span>AI Institutional Intelligence &amp; Multimodal Assistant</span>
+              <span>Groq Institutional Intelligence Assistant</span>
             </h2>
-            {isGroqModel ? (
-              <span className="text-[10px] font-mono uppercase px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-800 dark:bg-orange-950/80 dark:text-orange-300 font-bold border border-orange-200 dark:border-orange-800 flex items-center space-x-1 shadow-xs">
-                <Zap className="w-3 h-3 text-orange-500 fill-orange-500" />
-                <span>{selectedModel.replace('groq:', 'Groq LPU: ')}</span>
-              </span>
-            ) : (
-              <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-950/80 dark:text-purple-300 font-bold border border-purple-200 dark:border-purple-800">
-                {selectedModel}
-              </span>
-            )}
+            <span className="text-[10px] font-mono uppercase px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-800 dark:bg-orange-950/80 dark:text-orange-300 font-bold border border-orange-200 dark:border-orange-800 flex items-center space-x-1 shadow-xs">
+              <Zap className="w-3 h-3 text-orange-500 fill-orange-500" />
+              <span>Groq: {selectedModel}</span>
+            </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Production AI reasoning and vision inspection grounded strictly in verified Chitral census, admissions, and active forecast records.
+            Groq AI reasoning grounded in the available census, admissions, and active forecast records.
           </p>
         </div>
 
@@ -280,20 +263,14 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
             <button
               onClick={() => setIsKeyModalOpen(true)}
               className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition cursor-pointer shadow-xs active:scale-95 ${
-                (isGroqModel ? activeGroqKey || hasServerGroqKey : activeApiKey || hasServerGeminiKey)
+                hasServerGroqKey
                   ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
                   : 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 animate-pulse'
               }`}
             >
               <Key className="w-3.5 h-3.5" />
               <span>
-                {isGroqModel
-                  ? activeGroqKey || hasServerGroqKey
-                    ? 'Groq Key: Connected'
-                    : 'Configure Groq Key'
-                  : activeApiKey || hasServerGeminiKey
-                  ? 'Gemini Key: Connected'
-                  : 'Configure Gemini Key'}
+                {hasServerGroqKey ? 'Groq Key: Connected' : 'Configure Groq Key'}
               </span>
             </button>
           )}
@@ -314,15 +291,12 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
           <span>Interactive Policy &amp; Forecast Reasoning</span>
         </button>
         <button
-          onClick={() => setActiveMode('VISION')}
-          className={`flex items-center space-x-2 px-4 py-2.5 border-b-2 text-xs font-bold transition-all cursor-pointer ${
-            activeMode === 'VISION'
-              ? 'border-purple-600 text-purple-600 dark:text-purple-400'
-              : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-          }`}
+          disabled
+          title="Image analysis is not supported by the configured Groq text models."
+          className="flex items-center space-x-2 px-4 py-2.5 border-b-2 border-transparent text-xs font-bold text-slate-400 cursor-not-allowed opacity-60"
         >
           <ImageIcon className="w-4 h-4" />
-          <span>Multimodal Document &amp; Gazette Vision Inspector</span>
+          <span>Document image analysis unavailable</span>
         </button>
       </div>
 
@@ -331,7 +305,7 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
         <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-xs flex items-start space-x-2.5">
           <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <span className="font-bold">Gemini API Error:</span>
+            <span className="font-bold">Groq API Error:</span>
             <p className="text-[11px]">{errorMessage}</p>
           </div>
         </div>
@@ -353,23 +327,12 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
                 <span className="text-[11px] text-slate-400 font-medium">Model:</span>
                 <select
                   value={selectedModel}
-                  onChange={e => handleModelChange(e.target.value as GeminiModelId)}
+                  onChange={e => handleModelChange(e.target.value as GroqModelId)}
                   className="py-1 px-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
                 >
-                  <optgroup label="Groq LPU (Ultra-Low Latency &amp; Forecast Grounded)">
-                    <option value="groq:openai/gpt-oss-120b">Groq GPT OSS 120B (Recommended)</option>
-                    <option value="groq:openai/gpt-oss-20b">Groq GPT OSS 20B</option>
-                    <option value="groq:llama-3.3-70b-versatile">Groq Llama 3.3 70B (Fast Deep Reasoning)</option>
-                    <option value="groq:llama-3.1-8b-instant">Groq Llama 3.1 8B (Sub-second Instant)</option>
-                    <option value="groq:mixtral-8x7b-32768">Groq Mixtral 8x7B (High Throughput MoE)</option>
-                  </optgroup>
-                  <optgroup label="Google Gemini Models">
-                    <option value="gemini-3.8-flash">gemini-3.8-flash (Standard Multimodal)</option>
-                    <option value="gemini-2.5-flash">gemini-2.5-flash (Fast Primary)</option>
-                    <option value="gemini-flash-latest">gemini-flash-latest (Dynamic Flash)</option>
-                    <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite (Speed Optimized)</option>
-                    <option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview (Deep Reasoning)</option>
-                  </optgroup>
+                  <option value="openai/gpt-oss-120b">GPT OSS 120B (Recommended)</option>
+                  <option value="openai/gpt-oss-20b">GPT OSS 20B</option>
+                  <option value="qwen/qwen3.8-27b">Qwen 3.8 27B</option>
                 </select>
               </div>
             </div>
