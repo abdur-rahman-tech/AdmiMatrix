@@ -1073,7 +1073,7 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
                           <span className="px-1.5 py-0.5 rounded text-[10px] bg-purple-600 text-white font-sans font-bold">
                             Selected
                           </span>
-                        ) : m.modelId === 'NAIVE' ? (
+                        ) : m.modelId === 'NAIVE' || m.modelId === 'MOVING_AVG' ? (
                           <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-sans">
                             Benchmark
                           </span>

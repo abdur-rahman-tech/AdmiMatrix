@@ -672,12 +672,19 @@ export function compareModelsScorecard(
     s.rank = rankIdx >= 0 ? rankIdx + 1 : undefined;
   });
 
+  // Persistence and moving-average models intentionally return a constant
+  // multi-year forecast. Keep them in the scorecard as useful benchmarks, but
+  // do not let one-step backtests select them for AUTO multi-year projections.
+  const autoEligible = eligible.filter(
+    s => s.modelId !== 'NAIVE' && s.modelId !== 'MOVING_AVG'
+  );
+
   let bestModelId: ForecastModelId = 'HOLT';
   let selectionRationale = 'Selected based on lowest historical backtesting RMSE.';
 
-  if (eligible.length > 0) {
-    const top = eligible[0];
-    const second = eligible[1];
+  if (autoEligible.length > 0) {
+    const top = autoEligible[0];
+    const second = autoEligible[1];
 
     // If second model is simpler and within 5% error of the top model, prefer simpler model (Occam's razor)
     if (second && second.rmse <= top.rmse * 1.05) {
@@ -924,7 +931,7 @@ export function generateForecast(
     dataQualityWarnings,
     methodology:
       modelId === 'AUTO'
-        ? `AUTO mode performed expanding-window chronological backtesting across all candidate models on historical University of Chitral admissions data (${sorted[0].academicYear} to ${latestRecord.academicYear}) and selected ${maleOutput.algorithm}. Male and female headcounts were independently evaluated and combined to form the total demand forecast.`
+        ? `AUTO mode performed expanding-window chronological backtesting on historical University of Chitral admissions data (${sorted[0].academicYear} to ${latestRecord.academicYear}) and selected ${maleOutput.algorithm}. Persistence and moving-average models remain visible as benchmarks but are excluded from automatic multi-year selection because they repeat a constant value. Male and female headcounts were independently evaluated and combined to form the total demand forecast.`
         : `Forecast generated using ${maleOutput.algorithm}. Male and female student enrollments are modeled independently from historical trends and summed to guarantee mathematical consistency. Prediction intervals widen conditionally with forecast horizon distance.`,
     limitations: [
       'Estimates, Not Promises: These numbers show expected student demand based on past trends—not a fixed guarantee.',

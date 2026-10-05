@@ -104,6 +104,7 @@ Standard randomized K-Fold validation is statistically flawed for time-series da
 - Evaluates models sequentially across historical cycles.
 - Computes **MAE** (Mean Absolute Error), **RMSE** (Root Mean Squared Error), and safe **MAPE** (Mean Absolute Percentage Error).
 - **Occam's Razor Rule:** If a simpler linear model performs within 5% of a higher-order polynomial, the engine automatically selects the simpler, more stable model.
+- Persistence and moving-average models remain visible as benchmarks, but AUTO excludes them from multi-year selection because they repeat a constant forecast at every future step; they remain available for manual comparison.
 
 ---
 
