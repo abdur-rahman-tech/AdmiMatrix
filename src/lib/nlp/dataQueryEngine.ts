@@ -165,13 +165,17 @@ export function answerDataQuery(
       return {
         question,
         found: true,
-        answer: `According to the ${ref.year} census/population records for Chitral, the total recorded population was ${ref.totalPopulation.toLocaleString()}, comprising ${ref.malePopulation.toLocaleString()} males (${ref.malePercentage}%) and ${ref.femalePopulation.toLocaleString()} females (${ref.femalePercentage}%).`,
+        answer: `According to the ${ref.year} census/population records for Chitral, the total recorded population was ${ref.totalPopulation.toLocaleString()}${ref.malePopulation !== undefined || ref.femalePopulation !== undefined ? `, comprising ${ref.malePopulation?.toLocaleString() ?? 'not provided'} males (${ref.malePercentage !== undefined ? `${ref.malePercentage}%` : 'ratio not provided'}) and ${ref.femalePopulation?.toLocaleString() ?? 'not provided'} females (${ref.femalePercentage !== undefined ? `${ref.femalePercentage}%` : 'ratio not provided'})` : ', gender-specific counts were not provided'}.`,
         citation: 'Pakistan Bureau of Statistics (PBS) Census Record',
         dataPoints: {
           'Year': ref.year,
           'Total Population': ref.totalPopulation.toLocaleString(),
-          'Male Population': `${ref.malePopulation.toLocaleString()} (${ref.malePercentage}%)`,
-          'Female Population': `${ref.femalePopulation.toLocaleString()} (${ref.femalePercentage}%)`
+          'Male Population': ref.malePopulation !== undefined
+            ? `${ref.malePopulation.toLocaleString()} (${ref.malePercentage ?? 'not provided'}%)`
+            : 'Not provided',
+          'Female Population': ref.femalePopulation !== undefined
+            ? `${ref.femalePopulation.toLocaleString()} (${ref.femalePercentage ?? 'not provided'}%)`
+            : 'Not provided'
         }
       };
     }

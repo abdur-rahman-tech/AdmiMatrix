@@ -114,31 +114,25 @@ export const PopulationCRUD: React.FC<PopulationCRUDProps> = ({
     setCsvSuccessMsg(null);
   };
 
-  // Auto-calculate total and ratios when male/female change in form
+  // Keep total population as an explicit entry; gender counts are optional.
   const handleMaleChange = (val: string) => {
     setFormMale(val);
-    const m = parseInt(val, 10) || 0;
-    const f = parseInt(formFemale, 10) || 0;
-    setFormTotal((m + f).toString());
   };
 
   const handleFemaleChange = (val: string) => {
     setFormFemale(val);
-    const m = parseInt(formMale, 10) || 0;
-    const f = parseInt(val, 10) || 0;
-    setFormTotal((m + f).toString());
   };
 
   const calculatedMalePct = useMemo(() => {
     const tot = parseInt(formTotal, 10) || 0;
-    const m = parseInt(formMale, 10) || 0;
-    return tot > 0 ? ((m / tot) * 100).toFixed(2) : '50.00';
+    const m = formMale.trim() ? Number(formMale) : undefined;
+    return tot > 0 && m !== undefined ? ((m / tot) * 100).toFixed(2) : null;
   }, [formMale, formTotal]);
 
   const calculatedFemalePct = useMemo(() => {
     const tot = parseInt(formTotal, 10) || 0;
-    const f = parseInt(formFemale, 10) || 0;
-    return tot > 0 ? ((f / tot) * 100).toFixed(2) : '50.00';
+    const f = formFemale.trim() ? Number(formFemale) : undefined;
+    return tot > 0 && f !== undefined ? ((f / tot) * 100).toFixed(2) : null;
   }, [formFemale, formTotal]);
 
   // Open Edit Modal
@@ -146,8 +140,8 @@ export const PopulationCRUD: React.FC<PopulationCRUDProps> = ({
     setEditingRecord(rec);
     setFormYear(rec.year.toString());
     setFormDistrict(rec.district);
-    setFormMale(rec.malePopulation.toString());
-    setFormFemale(rec.femalePopulation.toString());
+    setFormMale(rec.malePopulation?.toString() || '');
+    setFormFemale(rec.femalePopulation?.toString() || '');
     setFormTotal(rec.totalPopulation.toString());
     setFormGrowthRate(rec.annualGrowthRate !== undefined ? rec.annualGrowthRate.toString() : '');
     setFormIsEstimated(!!rec.isEstimated);
@@ -162,13 +156,17 @@ export const PopulationCRUD: React.FC<PopulationCRUDProps> = ({
     const nextYear = base.year + 1;
     const growth = base.annualGrowthRate || 1.74;
     const projectedTotal = Math.round(base.totalPopulation * (1 + growth / 100));
-    const projectedMale = Math.round(projectedTotal * (base.malePercentage / 100));
-    const projectedFemale = projectedTotal - projectedMale;
+    const projectedMale = base.malePercentage !== undefined
+      ? Math.round(projectedTotal * (base.malePercentage / 100))
+      : undefined;
+    const projectedFemale = base.femalePercentage !== undefined
+      ? Math.round(projectedTotal * (base.femalePercentage / 100))
+      : undefined;
 
     setFormYear(nextYear.toString());
     setFormDistrict(base.district);
-    setFormMale(projectedMale.toString());
-    setFormFemale(projectedFemale.toString());
+    setFormMale(projectedMale?.toString() || '');
+    setFormFemale(projectedFemale?.toString() || '');
     setFormTotal(projectedTotal.toString());
     setFormGrowthRate(growth.toString());
     setFormIsEstimated(true);
@@ -240,13 +238,13 @@ export const PopulationCRUD: React.FC<PopulationCRUDProps> = ({
     setFormWarnings([]);
 
     const year = parseInt(formYear, 10);
-    const male = parseInt(formMale, 10);
-    const female = parseInt(formFemale, 10);
-    const total = parseInt(formTotal, 10);
+    const male = formMale.trim() ? Number(formMale) : undefined;
+    const female = formFemale.trim() ? Number(formFemale) : undefined;
+    const total = Number(formTotal);
     const growth = formGrowthRate ? parseFloat(formGrowthRate) : undefined;
 
-    const malePct = total > 0 ? Number(((male / total) * 100).toFixed(2)) : 0;
-    const femalePct = total > 0 ? Number(((female / total) * 100).toFixed(2)) : 0;
+    const malePct = total > 0 && male !== undefined ? Number(((male / total) * 100).toFixed(2)) : undefined;
+    const femalePct = total > 0 && female !== undefined ? Number(((female / total) * 100).toFixed(2)) : undefined;
 
     // Existing keys check (excluding current record if editing)
     const existingKeys = new Set(
@@ -305,7 +303,7 @@ export const PopulationCRUD: React.FC<PopulationCRUDProps> = ({
         role: userRole,
         action: 'POPULATION_RECORD_UPDATE',
         targetEntity: `Year ${year} (${formDistrict})`,
-        details: `Updated population metrics: Total ${total.toLocaleString()} (M: ${male.toLocaleString()}, F: ${female.toLocaleString()}).`
+        details: `Updated population metrics: Total ${total.toLocaleString()} (M: ${male?.toLocaleString() ?? 'not provided'}, F: ${female?.toLocaleString() ?? 'not provided'}).`
       };
       setAuditLogs(prev => [audit, ...prev]);
 
@@ -476,13 +474,13 @@ export const PopulationCRUD: React.FC<PopulationCRUDProps> = ({
     setFormWarnings([]);
 
     const year = parseInt(formYear, 10);
-    const male = parseInt(formMale, 10);
-    const female = parseInt(formFemale, 10);
-    const total = parseInt(formTotal, 10);
+    const male = formMale.trim() ? Number(formMale) : undefined;
+    const female = formFemale.trim() ? Number(formFemale) : undefined;
+    const total = Number(formTotal);
     const growth = formGrowthRate ? parseFloat(formGrowthRate) : undefined;
 
-    const malePct = total > 0 ? Number(((male / total) * 100).toFixed(2)) : 0;
-    const femalePct = total > 0 ? Number(((female / total) * 100).toFixed(2)) : 0;
+    const malePct = total > 0 && male !== undefined ? Number(((male / total) * 100).toFixed(2)) : undefined;
+    const femalePct = total > 0 && female !== undefined ? Number(((female / total) * 100).toFixed(2)) : undefined;
 
     const existingKeys = new Set(populationData.map(r => `${r.year}-${r.district}`));
 
@@ -720,7 +718,7 @@ export const PopulationCRUD: React.FC<PopulationCRUDProps> = ({
                   Manual Demographic Record Entry
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Directly record a single official census or projected year entry with real-time gender balancing calculation.
+                  Enter a total population. Male and female counts are optional.
                 </p>
               </div>
             </div>
@@ -762,12 +760,12 @@ export const PopulationCRUD: React.FC<PopulationCRUDProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
-                    Male Citizens *
+                    Male Citizens (Optional)
                   </label>
                   <input
                     type="number"
-                    required
                     min={0}
+                    placeholder="Optional"
                     value={formMale}
                     onChange={e => handleMaleChange(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-mono text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:outline-none"
@@ -776,12 +774,12 @@ export const PopulationCRUD: React.FC<PopulationCRUDProps> = ({
 
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
-                    Female Citizens *
+                    Female Citizens (Optional)
                   </label>
                   <input
                     type="number"
-                    required
                     min={0}
+                    placeholder="Optional"
                     value={formFemale}
                     onChange={e => handleFemaleChange(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-mono text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:outline-none"
@@ -807,9 +805,9 @@ export const PopulationCRUD: React.FC<PopulationCRUDProps> = ({
               <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs">
                 <span className="text-slate-500 font-medium">Computed Gender Ratio:</span>
                 <div className="flex items-center space-x-3 font-mono font-bold">
-                  <span className="text-blue-600 dark:text-blue-400">{calculatedMalePct}% Male</span>
+                  <span className="text-blue-600 dark:text-blue-400">{calculatedMalePct !== null ? `${calculatedMalePct}% Male` : 'Male: Not provided'}</span>
                   <span className="text-slate-400">•</span>
-                  <span className="text-emerald-600 dark:text-emerald-400">{calculatedFemalePct}% Female</span>
+                  <span className="text-emerald-600 dark:text-emerald-400">{calculatedFemalePct !== null ? `${calculatedFemalePct}% Female` : 'Female: Not provided'}</span>
                 </div>
               </div>
 
@@ -1013,10 +1011,10 @@ export const PopulationCRUD: React.FC<PopulationCRUDProps> = ({
             <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800">
               <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Gender Balance (Latest)</span>
               <p className="text-xl font-bold text-slate-900 dark:text-white mt-0.5">
-                {latestCensus ? `${latestCensus.femalePercentage}% F` : '49.2% F'}
+                {latestCensus?.femalePercentage !== undefined ? `${latestCensus.femalePercentage}% F` : 'Not provided'}
               </p>
               <span className="text-[10px] text-emerald-600 dark:text-emerald-400">
-                {latestCensus ? `${latestCensus.malePercentage}% M` : '50.8% M'}
+                {latestCensus?.malePercentage !== undefined ? `${latestCensus.malePercentage}% M` : 'Not provided'}
               </span>
             </div>
 
@@ -1157,16 +1155,16 @@ export const PopulationCRUD: React.FC<PopulationCRUDProps> = ({
                           {rec.totalPopulation.toLocaleString()}
                         </td>
                         <td className="py-3 px-4 text-right text-slate-600 dark:text-slate-300 font-mono">
-                          {rec.malePopulation.toLocaleString()}
+                          {rec.malePopulation?.toLocaleString() ?? '—'}
                         </td>
                         <td className="py-3 px-4 text-right text-slate-600 dark:text-slate-300 font-mono">
-                          {rec.femalePopulation.toLocaleString()}
+                          {rec.femalePopulation?.toLocaleString() ?? '—'}
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center justify-center space-x-1 text-[11px] font-medium font-mono">
-                            <span className="text-blue-600 dark:text-blue-400">{rec.malePercentage}% M</span>
+                            <span className="text-blue-600 dark:text-blue-400">{rec.malePercentage !== undefined ? `${rec.malePercentage}% M` : 'M: —'}</span>
                             <span className="text-slate-400">/</span>
-                            <span className="text-emerald-600 dark:text-emerald-400">{rec.femalePercentage}% F</span>
+                            <span className="text-emerald-600 dark:text-emerald-400">{rec.femalePercentage !== undefined ? `${rec.femalePercentage}% F` : 'F: —'}</span>
                           </div>
                         </td>
                         <td className="py-3 px-4 text-right text-slate-700 dark:text-slate-300 font-mono">
@@ -1322,12 +1320,12 @@ export const PopulationCRUD: React.FC<PopulationCRUDProps> = ({
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
-                    Male Citizens *
+                    Male Citizens (Optional)
                   </label>
                   <input
                     type="number"
-                    required
                     min={0}
+                    placeholder="Optional"
                     value={formMale}
                     onChange={e => handleMaleChange(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-mono text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:outline-none"
@@ -1336,12 +1334,12 @@ export const PopulationCRUD: React.FC<PopulationCRUDProps> = ({
 
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
-                    Female Citizens *
+                    Female Citizens (Optional)
                   </label>
                   <input
                     type="number"
-                    required
                     min={0}
+                    placeholder="Optional"
                     value={formFemale}
                     onChange={e => handleFemaleChange(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-mono text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:outline-none"
@@ -1367,9 +1365,9 @@ export const PopulationCRUD: React.FC<PopulationCRUDProps> = ({
               <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs">
                 <span className="text-slate-500 font-medium">Computed Gender Ratio:</span>
                 <div className="flex items-center space-x-3 font-mono font-bold">
-                  <span className="text-blue-600 dark:text-blue-400">{calculatedMalePct}% Male</span>
+                  <span className="text-blue-600 dark:text-blue-400">{calculatedMalePct !== null ? `${calculatedMalePct}% Male` : 'Male: Not provided'}</span>
                   <span className="text-slate-400">•</span>
-                  <span className="text-emerald-600 dark:text-emerald-400">{calculatedFemalePct}% Female</span>
+                  <span className="text-emerald-600 dark:text-emerald-400">{calculatedFemalePct !== null ? `${calculatedFemalePct}% Female` : 'Female: Not provided'}</span>
                 </div>
               </div>
 

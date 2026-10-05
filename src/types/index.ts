@@ -54,10 +54,10 @@ export interface PopulationRecord {
   year: number;
   district: DistrictScope;
   totalPopulation: number;
-  malePopulation: number;
-  femalePopulation: number;
-  malePercentage: number;
-  femalePercentage: number;
+  malePopulation?: number;
+  femalePopulation?: number;
+  malePercentage?: number;
+  femalePercentage?: number;
   annualGrowthRate?: number;
   sourceId: string;
   isEstimated?: boolean;

@@ -354,7 +354,11 @@ export function validatePopulationRecord(
   }
 
   // 4. Positive population numbers
-  if (record.totalPopulation === undefined || record.totalPopulation <= 0) {
+  if (
+    record.totalPopulation === undefined ||
+    !Number.isFinite(record.totalPopulation) ||
+    record.totalPopulation <= 0
+  ) {
     errors.push({
       rowNumber: rowNum,
       fieldName: 'totalPopulation',
@@ -364,22 +368,28 @@ export function validatePopulationRecord(
     });
   }
 
-  if (record.malePopulation === undefined || record.malePopulation < 0) {
+  if (
+    record.malePopulation !== undefined &&
+    (!Number.isFinite(record.malePopulation) || record.malePopulation < 0)
+  ) {
     errors.push({
       rowNumber: rowNum,
       fieldName: 'malePopulation',
       severity: 'ERROR',
-      message: 'Male population cannot be negative.',
+      message: 'Male population must be a non-negative number when provided.',
       rejectedValue: record.malePopulation
     });
   }
 
-  if (record.femalePopulation === undefined || record.femalePopulation < 0) {
+  if (
+    record.femalePopulation !== undefined &&
+    (!Number.isFinite(record.femalePopulation) || record.femalePopulation < 0)
+  ) {
     errors.push({
       rowNumber: rowNum,
       fieldName: 'femalePopulation',
       severity: 'ERROR',
-      message: 'Female population cannot be negative.',
+      message: 'Female population must be a non-negative number when provided.',
       rejectedValue: record.femalePopulation
     });
   }
@@ -443,14 +453,20 @@ export function validatePopulationCSV(csvContent: string): PopulationValidationR
     else district = 'COMBINED_CHITRAL';
 
     const totalPopulation = Number(row.total_population ?? row.totalPopulation ?? row.total ?? 0);
-    const malePopulation = Number(row.male_population ?? row.malePopulation ?? row.male ?? 0);
-    const femalePopulation = Number(row.female_population ?? row.femalePopulation ?? row.female ?? 0);
+    const parseOptionalPopulation = (value: unknown): number | undefined =>
+      value === undefined || value === null || value === '' ? undefined : Number(value);
+    const malePopulation = parseOptionalPopulation(row.male_population ?? row.malePopulation ?? row.male);
+    const femalePopulation = parseOptionalPopulation(row.female_population ?? row.femalePopulation ?? row.female);
     const annualGrowthRate = row.growth_rate !== undefined ? Number(row.growth_rate) : (row.annualGrowthRate !== undefined ? Number(row.annualGrowthRate) : undefined);
     const isEstimated = Boolean(row.is_estimated ?? row.isEstimated ?? false);
     const notes = String(row.notes || '');
 
-    const malePercentage = totalPopulation > 0 ? Number(((malePopulation / totalPopulation) * 100).toFixed(2)) : 0;
-    const femalePercentage = totalPopulation > 0 ? Number(((femalePopulation / totalPopulation) * 100).toFixed(2)) : 0;
+    const malePercentage = totalPopulation > 0 && malePopulation !== undefined
+      ? Number(((malePopulation / totalPopulation) * 100).toFixed(2))
+      : undefined;
+    const femalePercentage = totalPopulation > 0 && femalePopulation !== undefined
+      ? Number(((femalePopulation / totalPopulation) * 100).toFixed(2))
+      : undefined;
 
     const record: Partial<PopulationRecord> = {
       year,

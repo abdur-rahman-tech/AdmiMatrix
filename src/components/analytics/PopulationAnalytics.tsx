@@ -96,8 +96,8 @@ export const PopulationAnalytics: React.FC<PopulationAnalyticsProps> = ({
         <MetricCard
           id="pop-metric-female"
           title="Female Population"
-          value={latest?.femalePopulation.toLocaleString() || '0'}
-          changeLabel={`${latest?.femalePercentage}% of total`}
+          value={latest?.femalePopulation?.toLocaleString() || 'Not provided'}
+          changeLabel={latest?.femalePercentage !== undefined ? `${latest.femalePercentage}% of total` : 'Not provided'}
           changeType="positive"
           icon={UserCheck}
           subtext="Exceeds 50% in 2023 Census"
@@ -106,8 +106,8 @@ export const PopulationAnalytics: React.FC<PopulationAnalyticsProps> = ({
         <MetricCard
           id="pop-metric-male"
           title="Male Population"
-          value={latest?.malePopulation.toLocaleString() || '0'}
-          changeLabel={`${latest?.malePercentage}% of total`}
+          value={latest?.malePopulation?.toLocaleString() || 'Not provided'}
+          changeLabel={latest?.malePercentage !== undefined ? `${latest.malePercentage}% of total` : 'Not provided'}
           changeType="neutral"
           icon={UserCheck}
           subtext="Stable sex ratio"
@@ -272,15 +272,15 @@ export const PopulationAnalytics: React.FC<PopulationAnalyticsProps> = ({
                     {rec.totalPopulation.toLocaleString()}
                   </td>
                   <td className="py-3 px-4 text-right font-mono text-blue-600 dark:text-blue-400">
-                    {rec.malePopulation.toLocaleString()}
+                    {rec.malePopulation?.toLocaleString() ?? '—'}
                   </td>
                   <td className="py-3 px-4 text-right font-mono text-pink-600 dark:text-pink-400">
-                    {rec.femalePopulation.toLocaleString()}
+                    {rec.femalePopulation?.toLocaleString() ?? '—'}
                   </td>
                   <td className="py-3 px-4 text-right font-mono">
-                    <span className="text-blue-600 dark:text-blue-400 font-medium">{rec.malePercentage}%</span>
+                    <span className="text-blue-600 dark:text-blue-400 font-medium">{rec.malePercentage !== undefined ? `${rec.malePercentage}%` : '—'}</span>
                     <span className="text-slate-400 mx-1">/</span>
-                    <span className="text-pink-600 dark:text-pink-400 font-medium">{rec.femalePercentage}%</span>
+                    <span className="text-pink-600 dark:text-pink-400 font-medium">{rec.femalePercentage !== undefined ? `${rec.femalePercentage}%` : '—'}</span>
                   </td>
                   <td className="py-3 px-4 text-right font-mono">
                     {rec.annualGrowthRate ? `${rec.annualGrowthRate}%` : '—'}

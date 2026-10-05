@@ -215,7 +215,7 @@ ${currentForecast.predictions
   const popSummary = sortedPop
     .map(
       p =>
-        `Year ${p.year} (${p.district}): Total Population=${p.totalPopulation.toLocaleString()} (Male=${p.malePopulation.toLocaleString()} [${p.malePercentage}%], Female=${p.femalePopulation.toLocaleString()} [${p.femalePercentage}%])`
+        `Year ${p.year} (${p.district}): Total Population=${p.totalPopulation.toLocaleString()} (Male=${p.malePopulation?.toLocaleString() ?? 'not provided'} [${p.malePercentage !== undefined ? `${p.malePercentage}%` : 'ratio not provided'}], Female=${p.femalePopulation?.toLocaleString() ?? 'not provided'} [${p.femalePercentage !== undefined ? `${p.femalePercentage}%` : 'ratio not provided'}])`
     )
     .join('\n');
 
