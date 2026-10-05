@@ -211,7 +211,6 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, onKey
           >
             <option value="openai/gpt-oss-120b">openai/gpt-oss-120b (Primary Deep Reasoning)</option>
             <option value="openai/gpt-oss-20b">openai/gpt-oss-20b (Low Latency Instant)</option>
-            <option value="qwen/qwen3.8-27b">qwen/qwen3.8-27b (Alternative Open-Weight)</option>
           </select>
         </div>
 

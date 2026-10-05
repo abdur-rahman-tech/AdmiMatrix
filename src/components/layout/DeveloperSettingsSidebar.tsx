@@ -218,7 +218,6 @@ export const DeveloperSettingsSidebar: React.FC<DeveloperSettingsSidebarProps> =
             >
               <option value="openai/gpt-oss-120b">openai/gpt-oss-120b (Deep Reasoning)</option>
               <option value="openai/gpt-oss-20b">openai/gpt-oss-20b (Fast Instant)</option>
-              <option value="qwen/qwen3.8-27b">qwen/qwen3.8-27b (Alternative)</option>
             </select>
           </section>
 

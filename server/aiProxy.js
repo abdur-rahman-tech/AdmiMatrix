@@ -4,8 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const GROQ_MODELS = new Set([
   'openai/gpt-oss-120b',
-  'openai/gpt-oss-20b',
-  'qwen/qwen3.8-27b'
+  'openai/gpt-oss-20b'
 ]);
 const MAX_BODY_BYTES = 1024 * 1024;
 const TEST_MESSAGE = 'Say "Groq online" in 2 words.';
@@ -69,7 +68,7 @@ async function callGroq(apiKey, payload) {
     const errorBody = await response.json().catch(() => ({}));
     const message = errorBody.error?.message || `Groq returned HTTP ${response.status}.`;
     const error = new Error(message);
-    error.status = response.status >= 400 && response.status < 500 ? 400 : 502;
+    error.status = response.status >= 400 && response.status < 500 ? response.status : 502;
     throw error;
   }
 
@@ -144,8 +143,13 @@ export function createAiProxyMiddleware() {
       }
     }
 
-    if (req.method !== 'POST' || pathname !== '/api/ai/groq') return next();
-    if (!isSameOrigin(req)) return sendJson(res, 403, { error: 'Cross-origin requests are not allowed.' });
+    if (req.method === 'POST' && pathname === '/api/ai/groq') {
+      if (!isSameOrigin(req)) return sendJson(res, 403, { error: 'Cross-origin requests are not allowed.' });
+    } else if (pathname.startsWith('/api/ai/')) {
+      return sendJson(res, 404, { error: 'AI API endpoint not found.' });
+    } else {
+      return next();
+    }
 
     try {
       const body = await readJsonBody(req);

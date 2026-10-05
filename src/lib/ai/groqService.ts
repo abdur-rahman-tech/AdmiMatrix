@@ -4,7 +4,6 @@
  * High-Throughput, Low-Latency LPU Inference via Groq Cloud API:
  * - Primary Fast & Deep Reasoning: openai/gpt-oss-120b
  * - Low-latency Efficient Reasoning: openai/gpt-oss-20b
- * - Alternative Open-Weight Reasoning: qwen/qwen3.8-27b
  * 
  * Strict Grounding Architecture:
  * - Answers strictly grounded in the active mathematical forecast record in the app
@@ -19,13 +18,11 @@ import { StructuredAiResponse, VerifiedEvidenceItem, HypothesisItem, SourceCitat
 
 export type GroqModelId =
   | 'openai/gpt-oss-120b'
-  | 'openai/gpt-oss-20b'
-  | 'qwen/qwen3.8-27b';
+  | 'openai/gpt-oss-20b';
 
 export const GROQ_MODELS: GroqModelId[] = [
   'openai/gpt-oss-120b',
-  'openai/gpt-oss-20b',
-  'qwen/qwen3.8-27b'
+  'openai/gpt-oss-20b'
 ];
 
 const GROQ_PREFERRED_MODEL_KEY = 'adminatrix_preferred_groq_model';
@@ -141,12 +138,11 @@ export async function saveGroqApiKey(
     // Persist in browser local storage as well
     setGroqApiKey(trimmed);
     return { success: true, message: data.message || 'Groq API Key verified and saved successfully.' };
-  } catch (err) {
-    // If backend is unreachable, still save to local storage
+  } catch (error) {
     setGroqApiKey(trimmed);
     return {
-      success: true,
-      message: 'Key saved to browser storage (server environment could not be updated directly).'
+      success: false,
+      message: `Key is saved in this browser, but could not be synced to the server: ${error instanceof Error ? error.message : 'Network error'}.`
     };
   }
 }

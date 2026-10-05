@@ -186,7 +186,6 @@ Adminatrix incorporates an active, production-grade **Groq Cloud LPU API** integ
 ### 8.1 Groq LPU Model Architecture
 * **Primary Deep Reasoning Model (`openai/gpt-oss-120b`):** Delivers rigorous institutional chain-of-thought analysis grounded directly in the deterministic statistical forecast and historical census records with ultra-low latency.
 * **Low-Latency Instant Model (`openai/gpt-oss-20b`):** Fast conversational model for quick interactive querying.
-* **Alternative Open-Weight Model (`qwen/qwen3.8-27b`):** High-precision multilingual reasoning model.
 * **Strict JSON Schemas:** Forced `{ type: "json_object" }` ensuring structured outputs with executive answers, data points, confidence rankings, source citations, and strategic recommendations.
 
 ### 8.2 Regional Context & Bilingual Support (Urdu & English)
@@ -195,7 +194,7 @@ All Groq outputs generate dual-stream analysis:
 2. **Regional Urdu Briefing (`اردو خلاصہ`):** Grounded translation rendered with proper RTL typography for regional Khyber Pakhtunkhwa stakeholders.
 
 ### 8.3 Hackathon Judge 3-Step Live AI Verification
-1. **Configure Groq Key:** Add `GROQ_API_KEY=your_real_key_here` to the `.env` file (Groq options include `openai/gpt-oss-120b` (default), `openai/gpt-oss-20b`, and `qwen/qwen3.8-27b`). Alternatively, enter your key in **AI Settings** and click **"Save & Sync API Key"**.
+1. **Configure Groq Key:** Add `GROQ_API_KEY=your_real_key_here` to the `.env` file (Groq options include `openai/gpt-oss-120b` (default) and `openai/gpt-oss-20b`). Alternatively, enter your key in **AI Settings** and click **"Save & Sync API Key"**.
 2. **Execute Live Query:** Click the **"Ask AI"** tab in the navigation bar. Select a judge quick-test prompt or type any question. Observe live execution telemetry (Model: `Groq: openai/gpt-oss-120b`, Latency: ~300-500ms, Urdu translation).
 3. **Run Live Executive Briefing:** Navigate to the **"Forecast"** tab, scroll to the bottom decision-support card, and click **"Generate Live Groq Briefing"** to see live AI policy reasoning generated from the active mathematical model output.
 

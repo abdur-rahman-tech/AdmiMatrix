@@ -254,7 +254,6 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
               >
                 <option value="openai/gpt-oss-120b">GPT OSS 120B (Recommended)</option>
                 <option value="openai/gpt-oss-20b">GPT OSS 20B (Fast Instant)</option>
-                <option value="qwen/qwen3.8-27b">Qwen 3.8 27B (Alternative)</option>
               </select>
             </div>
           </div>

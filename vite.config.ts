@@ -18,6 +18,9 @@ export default defineConfig(() => {
         name: 'adimatrix-ai-proxy',
         configureServer(server) {
           server.middlewares.use(createAiProxyMiddleware());
+        },
+        configurePreviewServer(server) {
+          server.middlewares.use(createAiProxyMiddleware());
         }
       }
     ],
