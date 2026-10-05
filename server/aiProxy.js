@@ -32,6 +32,19 @@ function isSameOrigin(req) {
 }
 
 async function readJsonBody(req) {
+  if (req.body !== undefined) {
+    if (typeof req.body === 'string') {
+      try {
+        return JSON.parse(req.body);
+      } catch {
+        const error = new Error('Request body must be valid JSON.');
+        error.status = 400;
+        throw error;
+      }
+    }
+    return req.body;
+  }
+
   const chunks = [];
   let bytes = 0;
   for await (const chunk of req) {

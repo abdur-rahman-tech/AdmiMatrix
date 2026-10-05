@@ -246,6 +246,10 @@ npm start
 
 Groq API keys are read by the server-side AI proxy and can also be configured directly via the UI settings modal. Prefer `GROQ_API_KEY` in `.env` for server-managed environments.
 
+### Deploying to Vercel
+
+The `/api/ai/*` endpoints run as Vercel serverless functions. In the Vercel project, add `GROQ_API_KEY` (with underscores) under **Settings → Environment Variables** for each environment you deploy, then redeploy. A GitHub Actions repository secret is not automatically available to Vercel at runtime; if you only created a GitHub secret, add the same key to Vercel's environment variables. Do not use `GROQ-API-KEY` or a `VITE_`-prefixed name.
+
 ---
 
 ## 10. Platform Governance & Data Ethics
