@@ -18,7 +18,8 @@ import {
   clearActiveGroqApiKey,
   testGroqConnection,
   getPreferredGroqModel,
-  GROQ_MODEL_ID
+  GROQ_MODEL_ID,
+  GROQ_VISION_MODEL_ID
 } from '../../lib/ai/groqService';
 
 interface ApiKeyModalProps {
@@ -166,9 +167,14 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
               <span>Groq LPU Model:</span>
             </span>
             <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px]">
-              <span className="text-[10px] text-orange-600 dark:text-orange-400 font-bold block">CHAT &amp; VISION</span>
+              <span className="text-[10px] text-orange-600 dark:text-orange-400 font-bold block">CHAT</span>
               <span className="font-mono font-bold text-slate-900 dark:text-white">{GROQ_MODEL_ID}</span>
-              <p className="text-[10px] text-slate-400 mt-0.5">Used consistently for chat queries and document inspection.</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Used for grounded chat and forecast explanations.</p>
+            </div>
+            <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px]">
+              <span className="text-[10px] text-orange-600 dark:text-orange-400 font-bold block">DOCUMENT VISION</span>
+              <span className="font-mono font-bold text-slate-900 dark:text-white">{GROQ_VISION_MODEL_ID}</span>
+              <p className="text-[10px] text-slate-400 mt-0.5">Used only for image-based document inspection.</p>
             </div>
           </div>
 

@@ -230,7 +230,7 @@ export const DeveloperSettingsSidebar: React.FC<DeveloperSettingsSidebarProps> =
           <div className="space-y-2">
             <label className="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px] flex items-center space-x-1.5">
               <Cpu className="w-3.5 h-3.5 text-orange-500" />
-              <span>Active Groq LPU Model Target</span>
+              <span>Active Groq Chat Model</span>
             </label>
 
             <select
@@ -238,7 +238,7 @@ export const DeveloperSettingsSidebar: React.FC<DeveloperSettingsSidebarProps> =
               onChange={e => handleModelChange(e.target.value as GroqModelId)}
               className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"
             >
-              <option value={GROQ_MODEL_ID}>{GROQ_MODEL_ID} (Configured Groq model)</option>
+              <option value={GROQ_MODEL_ID}>{GROQ_MODEL_ID} (Chat)</option>
             </select>
           </div>
 

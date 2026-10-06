@@ -3,7 +3,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![React 19](https://img.shields.io/badge/React-19_SPA-61dafb?logo=react)](https://react.dev/)
 [![Vite 8](https://img.shields.io/badge/Vite-8-646cff?logo=vite)](https://vitejs.dev/)
-[![Groq LPU](https://img.shields.io/badge/Groq_LPU-Qwen_3.8_27B-orange?logo=fastapi)](https://groq.com/)
+[![Groq LPU](https://img.shields.io/badge/Groq_LPU-GPT--OSS_120B-orange?logo=fastapi)](https://groq.com/)
 [![Reviewed by HindukushSoft](https://img.shields.io/badge/Code_Quality-Reviewed_by_HindukushSoft-emerald)](#4-technical-execution--code-verification-20)
 [![Official Records](https://img.shields.io/badge/Data-PBS_Census_%2B_UOCH_Official-purple)](#1-problem-understanding--relevance-20)
 
@@ -17,7 +17,7 @@
 |---|---|:---:|---|
 | **1** | [**Problem Understanding & Relevance**](#1-problem-understanding--relevance-20) | **20%** | Solves high-altitude Hindu Kush mountain isolation, floods, transport barriers, and parental permission dynamics. |
 | **2** | [**Innovation & Creativity**](#2-innovation--creativity-20) | **20%** | Independent gender headcount modeling, unconstrained demand vs. capacity separation, and walk-forward backtesting. |
-| **3** | [**AI Implementation & Depth**](#3-ai-implementation--depth-25) | **25%** | Groq chat/document inference (`qwen/qwen3.8-27b`), forecast-grounded prompts, bilingual Urdu/English synthesis. |
+| **3** | [**AI Implementation & Depth**](#3-ai-implementation--depth-25) | **25%** | Groq GPT-OSS chat (`openai/gpt-oss-120b`) and Llama 4 Scout document vision, forecast-grounded prompts, bilingual Urdu/English synthesis. |
 | **4** | [**Technical Execution & Code Verification**](#4-technical-execution--code-verification-20) | **20%** | Pre-reviewed by HindukushSoft, 100% complete interactive prototype, strict TypeScript with **0 errors**. |
 | **5** | [**Presentation Clarity & Live Defense**](#5-presentation-clarity--live-defense-15) | **15%** | Structured 3-minute jury pitch, visual architecture diagrams, and ready defense answers for the 3-minute Q&A. |
 
@@ -123,7 +123,7 @@ The prediction numbers are calculated locally in TypeScript; the language model 
 
 `AUTO` compares eligible models using chronological expanding-window backtests of total admissions (RMSE/MAE, with a simplicity preference for close scores). Naive persistence and moving average are excluded from automatic multi-year selection because a constant projection is their intended behavior. Explicit model selection, the baseline/optimistic/pessimistic scenario (+4%/-4% annually), and the selected 5–7 year horizon are shown in the forecast controls. Prediction intervals are approximate and widen with horizon; forecasts are estimates, not guaranteed admission counts.
 
-The AI explanation model configured in this build is **Groq `qwen/qwen3.8-27b`**. It receives historical data and the already-computed forecast to produce a structured English/Urdu explanation; it is not the forecasting model. The application tools are **React 19, TypeScript 7, Vite 8, Node.js/Express** (same-origin AI proxy), **Groq Chat Completions API**, **Recharts**, **PapaParse**, browser **IndexedDB/localStorage**, and npm. Forecast algorithms are implemented in the project's own TypeScript; there is no external forecasting/ML package.
+The AI explanation model configured in this build is **Groq `openai/gpt-oss-120b`**. Document-image inspection uses Groq's vision-capable **`meta-llama/llama-4-scout-17b-16e-instruct`** model. Both receive only their task-specific input; the chat model receives historical data and the already-computed forecast to produce a structured English/Urdu explanation, and neither is the forecasting model. The application tools are **React 19, TypeScript 7, Vite 8, Node.js/Express** (same-origin AI proxy), **Groq Chat Completions API**, **Recharts**, **PapaParse**, browser **IndexedDB/localStorage**, and npm. Forecast algorithms are implemented in the project's own TypeScript; there is no external forecasting/ML package.
 
 ---
 
@@ -146,7 +146,8 @@ AdmiMatrix integrates the **Groq Cloud API** for grounded natural-language expla
 │                                                        ▼                      │
 │  ┌─────────────────────────────────────────────────────────────────────────┐ │
 │  │ Groq Cloud API (server-side proxy)                                      │ │
-│  │ - Configured model: qwen/qwen3.8-27b                                    │ │
+│  │ - Chat model: openai/gpt-oss-120b                                       │ │
+│  │ - Document vision: meta-llama/llama-4-scout-17b-16e-instruct            │ │
 │  └─────────────────────────────────────┬───────────────────────────────────┘ │
 │                                        │                                      │
 │                                        ▼                                      │
@@ -161,7 +162,7 @@ AdmiMatrix integrates the **Groq Cloud API** for grounded natural-language expla
 ```
 
 ### 3.1 AI model
-The application sends chat and document-inspection requests through its same-origin API proxy to Groq, using the configured **`qwen/qwen3.8-27b`** model. The proxy reads `GROQ_API_KEY` (or `GROQ-API-KEY`) from the server environment; the server key is never compiled into the browser bundle. A key entered in the UI is stored in that browser's local storage and sent only to the app's own proxy.
+The application sends chat requests through its same-origin API proxy to Groq using **`openai/gpt-oss-120b`**. Image-based document inspection uses the separate vision-capable **`meta-llama/llama-4-scout-17b-16e-instruct`** model. The proxy reads `GROQ_API_KEY` (or `GROQ-API-KEY`) from the server environment; the server key is never compiled into the browser bundle. A key entered in the UI is stored in that browser's local storage and sent only to the app's own proxy.
 
 ### 3.2 Mathematical grounding
 AdmiMatrix enforces a strict rule: **The LLM never calculates raw numbers.**
@@ -253,7 +254,7 @@ npm run build
 │   backtesting, and uncouple real demand from seating capacity limits." │
 │                                                                        │
 │  [1:45 - 2:30]  GROQ LPU REASONING & REGIONAL IMPACT                   │
-│  "Powered by the Groq API running qwen/qwen3.8-27b, our AI explains   │
+│  "Powered by Groq GPT-OSS 120B for chat and Llama 4 Scout for vision, │
 │   forecast-grounded trends and cites computed error metrics while     │
 │   providing bilingual English and Urdu summaries for local planners."  │
 │                                                                        │

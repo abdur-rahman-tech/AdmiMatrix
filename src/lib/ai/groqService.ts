@@ -2,7 +2,8 @@
  * Groq AI Service for AdmiMatrix
  * 
  * High-Throughput, Low-Latency LPU Inference via Groq Cloud API:
- * - Chat and multimodal vision: qwen/qwen3.8-27b
+ * - Chat: openai/gpt-oss-120b
+ * - Document vision: meta-llama/llama-4-scout-17b-16e-instruct
  * 
  * Strict Grounding Architecture:
  * - Answers strictly grounded in the active mathematical forecast record in the app
@@ -14,7 +15,8 @@
 
 import { AdmissionRecord, PopulationRecord, ForecastResult } from '../../types';
 
-export const GROQ_MODEL_ID = 'qwen/qwen3.8-27b';
+export const GROQ_MODEL_ID = 'openai/gpt-oss-120b';
+export const GROQ_VISION_MODEL_ID = 'meta-llama/llama-4-scout-17b-16e-instruct';
 export type GroqModelId = typeof GROQ_MODEL_ID;
 
 export interface VerifiedEvidenceItem {
@@ -442,7 +444,7 @@ Respond with a complete, valid JSON object containing:
 }
 
 /**
- * Optical document inspection using Groq Qwen vision model
+ * Optical document inspection using Groq's Llama 4 Scout vision model
  */
 export async function analyzeAdmissionDocumentImageWithGroq(
   imageBase64: string,
@@ -474,7 +476,7 @@ Return a structured JSON object with:
     },
     body: JSON.stringify({
       apiKey,
-      model: GROQ_MODEL_ID,
+      model: GROQ_VISION_MODEL_ID,
       messages: [
         {
           role: 'user',
@@ -513,7 +515,7 @@ Return a structured JSON object with:
     anomaliesDetected: Array.isArray(parsed.anomaliesDetected) ? parsed.anomaliesDetected : [],
     recommendationForRegistrar: parsed.recommendationForRegistrar || 'Archive document in digital registry.',
     meta: {
-      modelUsed: 'Groq Llama 3.2 11B Vision',
+      modelUsed: `groq:${GROQ_VISION_MODEL_ID}`,
       latencyMs
     }
   };

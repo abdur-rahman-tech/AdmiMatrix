@@ -2,8 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const GROQ_MODEL_ID = 'qwen/qwen3.8-27b';
-const GROQ_MODELS = new Set([GROQ_MODEL_ID]);
+const GROQ_MODEL_ID = 'openai/gpt-oss-120b';
+const GROQ_VISION_MODEL_ID = 'meta-llama/llama-4-scout-17b-16e-instruct';
+const GROQ_MODELS = new Set([GROQ_MODEL_ID, GROQ_VISION_MODEL_ID]);
 const MAX_BODY_BYTES = 1024 * 1024;
 const TEST_MESSAGE = 'Say "Groq online" in 2 words.';
 
@@ -206,6 +207,16 @@ export function createAiProxyMiddleware() {
       const model = body.model || GROQ_MODEL_ID;
       if (!GROQ_MODELS.has(model)) {
         return sendJson(res, 400, { error: `Model "${model}" is not in supported Groq models: ${Array.from(GROQ_MODELS).join(', ')}` });
+      }
+      const hasImageInput = Array.isArray(body.messages) &&
+        body.messages.some(message =>
+          Array.isArray(message?.content) &&
+          message.content.some(part => part?.type === 'image_url')
+        );
+      if (hasImageInput && model !== GROQ_VISION_MODEL_ID) {
+        return sendJson(res, 400, {
+          error: `Image input requires the Groq vision model "${GROQ_VISION_MODEL_ID}".`
+        });
       }
 
       const startedAt = Date.now();
