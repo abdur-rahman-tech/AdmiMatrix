@@ -474,6 +474,33 @@ export function fitArimaBaseline(
   };
 }
 
+function fitCandidateModel(
+  series: number[],
+  modelId: ForecastModelId,
+  horizon: number
+): SingleSeriesForecastOutput {
+  switch (modelId) {
+    case 'NAIVE':
+      return fitNaiveBaseline(series, horizon);
+    case 'OLS':
+      return fitOLSLinear(series, horizon);
+    case 'HOLT':
+      return fitHoltLinear(series, horizon);
+    case 'MOVING_AVG':
+      return fitMovingAverage(series, horizon);
+    case 'POLYNOMIAL':
+      return fitPolynomial(series, horizon);
+    case 'LOGIT':
+      return fitLogitTrend(series, horizon);
+    case 'ARIMA':
+      return fitArimaBaseline(series, horizon);
+    case 'DEMOGRAPHIC':
+    case 'AUTO':
+    default:
+      return fitOLSLinear(series, horizon);
+  }
+}
+
 // -------------------------------------------------------------
 // WALK-FORWARD TIME-SERIES VALIDATION (BACKTESTING)
 // Sequential Leave-Next-Out Evaluation
@@ -500,37 +527,7 @@ export function backtestSeries(
   for (let t = minTrain; t < n; t++) {
     const trainSlice = series.slice(0, t);
     const actual = series[t];
-
-    let pred = actual;
-    switch (modelId) {
-      case 'NAIVE':
-        pred = fitNaiveBaseline(trainSlice, 1).pointForecasts[0];
-        break;
-      case 'OLS':
-        pred = fitOLSLinear(trainSlice, 1).pointForecasts[0];
-        break;
-      case 'HOLT':
-        pred = fitHoltLinear(trainSlice, 1).pointForecasts[0];
-        break;
-      case 'MOVING_AVG':
-        pred = fitMovingAverage(trainSlice, 1).pointForecasts[0];
-        break;
-      case 'POLYNOMIAL':
-        pred = fitPolynomial(trainSlice, 1).pointForecasts[0];
-        break;
-      case 'LOGIT':
-        pred = fitLogitTrend(trainSlice, 1).pointForecasts[0];
-        break;
-      case 'ARIMA':
-        pred = fitArimaBaseline(trainSlice, 1).pointForecasts[0];
-        break;
-      case 'DEMOGRAPHIC':
-      default:
-        // Fallback or proxy
-        pred = fitOLSLinear(trainSlice, 1).pointForecasts[0];
-        break;
-    }
-
+    const pred = fitCandidateModel(trainSlice, modelId, 1).pointForecasts[0];
     errors.push(actual - pred);
   }
 
@@ -552,6 +549,49 @@ export function backtestSeries(
   };
 }
 
+function backtestAdmissionComponents(
+  maleSeries: number[],
+  femaleSeries: number[],
+  modelId: ForecastModelId
+): { mae: number; rmse: number; mape: number; isEligible: boolean; notes: string } {
+  const n = Math.min(maleSeries.length, femaleSeries.length);
+  if (n < 4) {
+    return {
+      mae: 0,
+      rmse: 0,
+      mape: 0,
+      isEligible: false,
+      notes: 'Insufficient historical observations for walk-forward backtesting (minimum 4 cycles required).'
+    };
+  }
+
+  const errors: number[] = [];
+  const actuals: number[] = [];
+  const minTrain = Math.max(3, Math.floor(n * 0.45));
+
+  for (let t = minTrain; t < n; t++) {
+    const malePrediction = fitCandidateModel(maleSeries.slice(0, t), modelId, 1).pointForecasts[0];
+    const femalePrediction = fitCandidateModel(femaleSeries.slice(0, t), modelId, 1).pointForecasts[0];
+    const actualTotal = maleSeries[t] + femaleSeries[t];
+    errors.push(actualTotal - malePrediction - femalePrediction);
+    actuals.push(actualTotal);
+  }
+
+  const mae = Number(mean(errors.map(error => Math.abs(error))).toFixed(2));
+  const rmse = Number(
+    Math.sqrt(errors.reduce((sum, error) => sum + error * error, 0) / errors.length).toFixed(2)
+  );
+  const predictions = actuals.map((actual, index) => actual - errors[index]);
+
+  return {
+    mae,
+    rmse,
+    mape: Number(safeMAPE(actuals, predictions).toFixed(2)),
+    isEligible: true,
+    notes: 'Evaluated the summed male/female forecast using walk-forward chronological expanding windows without data leakage.'
+  };
+}
+
 // -------------------------------------------------------------
 // DATA QUALITY & ANOMALY PRE-FLIGHT DETECTOR
 // -------------------------------------------------------------
@@ -562,6 +602,16 @@ export function detectDataQualityAnomalies(admissions: AdmissionRecord[]): strin
   if (sorted.length === 0) {
     warnings.push('Empty dataset: No historical admission records present.');
     return warnings;
+  }
+
+  if (sorted.length === 1) {
+    warnings.push(
+      'Only one historical admission cycle is available. A trend cannot be estimated, so trend models fall back to the latest observed value; add more historical cycles for a changing forecast.'
+    );
+  } else if (sorted.length < 4) {
+    warnings.push(
+      `Only ${sorted.length} historical admission cycles are available. The forecast can estimate a trend, but there is not enough history for reliable walk-forward model selection.`
+    );
   }
 
   const seenYears = new Set<string>();
@@ -615,7 +665,8 @@ export function detectDataQualityAnomalies(admissions: AdmissionRecord[]): strin
 export function compareModelsScorecard(
   totalSeries: number[],
   ratioSeries: number[],
-  isRatioMode: boolean = false
+  isRatioMode: boolean = false,
+  admissionComponents?: { maleSeries: number[]; femaleSeries: number[] }
 ): {
   scores: ModelComparisonItem[];
   bestModelId: ForecastModelId;
@@ -644,7 +695,14 @@ export function compareModelsScorecard(
   const scores: ModelComparisonItem[] = [];
 
   for (const cand of candidateModels) {
-    const bt = backtestSeries(seriesToTest, cand.id);
+    const bt =
+      !isRatioMode && admissionComponents
+        ? backtestAdmissionComponents(
+            admissionComponents.maleSeries,
+            admissionComponents.femaleSeries,
+            cand.id
+          )
+        : backtestSeries(seriesToTest, cand.id);
     scores.push({
       modelId: cand.id,
       modelName: cand.name,
@@ -743,7 +801,10 @@ export function generateForecast(
   const femaleRatioSeries = sorted.map(r => r.femaleAdmissionRatio);
 
   // 4. Model Comparison Scorecard & Auto Selection
-  const scorecard = compareModelsScorecard(totalSeries, femaleRatioSeries, false);
+  const scorecard = compareModelsScorecard(totalSeries, femaleRatioSeries, false, {
+    maleSeries,
+    femaleSeries
+  });
 
   const effectiveModelId: ForecastModelId =
     modelId === 'AUTO' ? scorecard.bestModelId : modelId;
@@ -897,7 +958,12 @@ export function generateForecast(
   }
 
   // 8. Model Metric Summary from Walk-Forward Backtesting
-  const backtest = backtestSeries(totalSeries, effectiveModelId);
+  const backtest =
+    effectiveModelId === 'LOGIT'
+      ? backtestSeries(totalSeries, 'HOLT')
+      : effectiveModelId === 'DEMOGRAPHIC'
+        ? backtestSeries(totalSeries, effectiveModelId)
+        : backtestAdmissionComponents(maleSeries, femaleSeries, effectiveModelId);
   const firstYear = predictions[0].academicYear;
   const lastYear = predictions[predictions.length - 1].academicYear;
 

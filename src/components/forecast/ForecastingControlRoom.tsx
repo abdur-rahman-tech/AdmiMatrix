@@ -260,6 +260,11 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
   // Check if any projected point exceeds planning capacity
   const capacityExceededPoint = forecastResult.predictions.find(p => p.isCapacityExceeded);
   const finalYearPred = forecastResult.predictions[forecastResult.predictions.length - 1];
+  const flatForecast =
+    forecastResult.predictions.length > 1 &&
+    forecastResult.predictions.every(
+      prediction => prediction.totalAdmitted === forecastResult.predictions[0].totalAdmitted
+    );
 
   return (
     <div id="forecasting-control-room-container" className="space-y-6">
@@ -472,6 +477,34 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
           </div>
         </div>
       </div>
+
+      {(forecastResult.dataQualityWarnings.length > 0 || flatForecast) && (
+        <div
+          role="status"
+          className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/80 text-amber-900 dark:text-amber-200"
+        >
+          <div className="flex items-start gap-2">
+            <Info className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+            <div className="space-y-1.5 text-xs leading-relaxed">
+              <p className="font-bold uppercase tracking-wider">Forecast data quality notice</p>
+              {flatForecast && (
+                <p>
+                  The selected model projects the same rounded total for each future year. This is not forced
+                  growth: verify the historical admission records and try another model if the flat projection
+                  does not match your planning assumptions.
+                </p>
+              )}
+              {forecastResult.dataQualityWarnings.length > 0 && (
+                <ul className="list-disc pl-4 space-y-1">
+                  {forecastResult.dataQualityWarnings.map((warning, index) => (
+                    <li key={`${index}-${warning}`}>{warning}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Capacity Alert Banner if demand exceeds planning capacity */}
       {capacityExceededPoint && (
