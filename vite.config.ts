@@ -1,28 +1,31 @@
+import 'dotenv/config';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { defineConfig } from 'vite';
+import { defineConfig, Plugin } from 'vite';
+import { createAiProxyMiddleware } from './server/aiProxy.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const groqApiKey =
-  process.env.GROQ_API_KEY ||
-  process.env['GROQ-API-KEY'] ||
-  process.env.VITE_GROQ_API_KEY ||
-  '';
+
+const aiProxyPlugin: Plugin = {
+  name: 'admimatrix-ai-proxy',
+  configureServer(server) {
+    server.middlewares.use(createAiProxyMiddleware());
+  },
+  configurePreviewServer(server) {
+    server.middlewares.use(createAiProxyMiddleware());
+  }
+};
 
 export default defineConfig(() => {
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [aiProxyPlugin, react(), tailwindcss()],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
       },
-    },
-    define: {
-      'process.env.GEMINI_API_KEY': JSON.stringify(process.env.GEMINI_API_KEY || ''),
-      'process.env.GROQ_API_KEY': JSON.stringify(groqApiKey),
     },
     server: {
       port: 3000,

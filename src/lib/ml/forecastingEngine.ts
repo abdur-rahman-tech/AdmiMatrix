@@ -722,6 +722,11 @@ export function generateForecast(
   if (historicalData.length === 0) {
     throw new Error('Cannot generate forecast with empty historical admission records.');
   }
+  if (modelId === 'NAIVE' || modelId === 'MOVING_AVG') {
+    throw new Error(
+      `${modelId} is a stationary benchmark that repeats a constant value. Select AUTO or a trend model for a multi-year forecast.`
+    );
+  }
 
   // 1. Sort chronologically
   const sorted = [...historicalData].sort((a, b) => a.startYear - b.startYear);

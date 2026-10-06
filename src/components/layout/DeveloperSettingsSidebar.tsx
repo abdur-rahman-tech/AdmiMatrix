@@ -22,7 +22,8 @@ import {
   getPreferredGroqModel,
   setPreferredGroqModel,
   testGroqConnection,
-  GroqModelId
+  GroqModelId,
+  GROQ_MODEL_ID
 } from '../../lib/ai/groqService';
 
 interface DeveloperSettingsSidebarProps {
@@ -38,7 +39,7 @@ export const DeveloperSettingsSidebar: React.FC<DeveloperSettingsSidebarProps> =
 }) => {
   const [groqKeyInput, setGroqKeyInput] = useState('');
   const [showGroqKey, setShowGroqKey] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<GroqModelId>('llama-3.3-70b-versatile');
+  const [selectedModel, setSelectedModel] = useState<GroqModelId>(GROQ_MODEL_ID);
   const [isTestingGroq, setIsTestingGroq] = useState(false);
   const [groqTestResult, setGroqTestResult] = useState<{
     success: boolean;
@@ -46,11 +47,6 @@ export const DeveloperSettingsSidebar: React.FC<DeveloperSettingsSidebarProps> =
     model?: string;
     latencyMs?: number;
   } | null>(null);
-
-  const hasEnvGroqKey = Boolean(
-    (import.meta as any).env?.VITE_GROQ_API_KEY ||
-    (typeof process !== 'undefined' && process.env?.GROQ_API_KEY)
-  );
 
   useEffect(() => {
     if (isOpen) {
@@ -170,7 +166,7 @@ export const DeveloperSettingsSidebar: React.FC<DeveloperSettingsSidebarProps> =
                   setGroqTestResult(null);
                 }}
                 onBlur={handleSaveKey}
-                placeholder="gsk_... (Enables Llama 3.3 on Groq LPU)"
+                placeholder="Optional: gsk_... (or configure GROQ_API_KEY on the server)"
                 className="w-full pl-3 pr-10 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
               <button
@@ -184,19 +180,17 @@ export const DeveloperSettingsSidebar: React.FC<DeveloperSettingsSidebarProps> =
 
             <div className="flex items-center justify-between text-[11px]">
               <span className="text-slate-500 dark:text-slate-400">
-                {hasEnvGroqKey ? '✓ Groq .env key detected' : 'No Groq key saved'}
+                {groqKeyInput ? 'Browser key saved locally' : 'Using server key if configured'}
               </span>
               <div className="flex items-center space-x-3">
-                {groqKeyInput && (
-                  <button
-                    type="button"
-                    onClick={handleTestGroqPing}
-                    disabled={isTestingGroq}
-                    className="text-orange-600 dark:text-orange-400 hover:underline font-bold cursor-pointer"
-                  >
-                    {isTestingGroq ? 'Testing...' : 'Test Groq'}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={handleTestGroqPing}
+                  disabled={isTestingGroq}
+                  className="text-orange-600 dark:text-orange-400 hover:underline font-bold cursor-pointer"
+                >
+                  {isTestingGroq ? 'Testing...' : 'Test Groq'}
+                </button>
                 {groqKeyInput && (
                   <button
                     type="button"
@@ -244,10 +238,7 @@ export const DeveloperSettingsSidebar: React.FC<DeveloperSettingsSidebarProps> =
               onChange={e => handleModelChange(e.target.value as GroqModelId)}
               className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"
             >
-              <option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile (Flagship Deep Reasoning — Recommended)</option>
-              <option value="llama-3.1-8b-instant">llama-3.1-8b-instant (Sub-second Instant)</option>
-              <option value="mixtral-8x7b-32768">mixtral-8x7b-32768 (High Throughput MoE)</option>
-              <option value="gemma2-9b-it">gemma2-9b-it (Compact Reasoning on Groq LPU)</option>
+              <option value={GROQ_MODEL_ID}>{GROQ_MODEL_ID} (Configured Groq model)</option>
             </select>
           </div>
 
@@ -260,7 +251,7 @@ export const DeveloperSettingsSidebar: React.FC<DeveloperSettingsSidebarProps> =
               <button
                 type="button"
                 onClick={handleTestGroqPing}
-                disabled={isTestingGroq || (!groqKeyInput && !hasEnvGroqKey)}
+                disabled={isTestingGroq}
                 className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-[11px] font-bold transition disabled:opacity-50 cursor-pointer shadow-xs active:scale-95"
               >
                 <Activity className={`w-3.5 h-3.5 ${isTestingGroq ? 'animate-spin' : ''}`} />

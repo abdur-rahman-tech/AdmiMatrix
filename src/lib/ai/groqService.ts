@@ -72,13 +72,7 @@ const GROQ_PREFERRED_MODEL_KEY = 'admi_groq_preferred_model';
 
 export function getActiveGroqApiKey(): string {
   const local = typeof window !== 'undefined' ? localStorage.getItem(GROQ_API_STORAGE_KEY) : null;
-  if (local && local.trim().length > 0) return local.trim();
-
-  const envKey =
-    (import.meta as any).env?.VITE_GROQ_API_KEY ||
-    (typeof process !== 'undefined' ? (process.env?.GROQ_API_KEY || process.env?.VITE_GROQ_API_KEY) : null);
-
-  return (envKey || '').trim();
+  return (local || '').trim();
 }
 
 export function setActiveGroqApiKey(key: string): void {
@@ -111,20 +105,17 @@ export async function testGroqConnection(
   model: GroqModelId = GROQ_MODEL_ID
 ): Promise<{ success: boolean; message: string; model?: string; latencyMs?: number }> {
   const cleanKey = apiKey.trim();
-  if (!cleanKey) {
-    return { success: false, message: 'Please provide a valid Groq API key.' };
-  }
-
   const cleanModel = model.replace(/^groq:/, '');
   const startTime = Date.now();
   try {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const res = await fetch('/api/ai/groq', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${cleanKey}`
       },
       body: JSON.stringify({
+        apiKey: cleanKey,
         model: cleanModel,
         messages: [{ role: 'user', content: 'Say "Groq online" in 2 words.' }],
         max_tokens: 10,
@@ -136,7 +127,7 @@ export async function testGroqConnection(
 
     if (!res.ok) {
       const errJson = await res.json().catch(() => ({}));
-      const errMsg = errJson?.error?.message || `HTTP ${res.status}: ${res.statusText}`;
+      const errMsg = errJson?.error?.message || errJson?.error || `HTTP ${res.status}: ${res.statusText}`;
       return {
         success: false,
         message: `Groq authentication error: ${errMsg}`,
@@ -273,10 +264,6 @@ export async function queryGroqInstitutionalAI(
   const apiKey = options?.runtimeApiKey || getActiveGroqApiKey();
   const startTime = Date.now();
 
-  if (!apiKey) {
-    throw new Error('MISSING_GROQ_KEY: Please enter your Groq API key in Dev & AI Settings to enable Groq LPU reasoning.');
-  }
-
   const chosenModel = options?.model ?? GROQ_MODEL_ID;
   const groundingContext = buildForecastGroundingContext(admissions, population, currentForecast);
 
@@ -312,13 +299,14 @@ Respond with a complete, valid JSON object containing:
 - sourceCitations: An array of expandable source citations [{ "name": "...", "type": "...", "detail": "...", "verified": true }].
 `;
 
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  const res = await fetch('/api/ai/groq', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`
     },
     body: JSON.stringify({
+      apiKey,
       model: chosenModel,
       messages: [
         { role: 'system', content: systemInstruction },
@@ -333,7 +321,7 @@ Respond with a complete, valid JSON object containing:
 
   if (!res.ok) {
     const errBody = await res.json().catch(() => ({}));
-    const errDetail = errBody?.error?.message || `HTTP ${res.status}: ${res.statusText}`;
+    const errDetail = errBody?.error?.message || errBody?.error || `HTTP ${res.status}: ${res.statusText}`;
     throw new Error(`Groq API Error (${chosenModel}): ${errDetail}`);
   }
 
@@ -465,10 +453,6 @@ export async function analyzeAdmissionDocumentImageWithGroq(
   const apiKey = runtimeApiKey || getActiveGroqApiKey();
   const startTime = Date.now();
 
-  if (!apiKey) {
-    throw new Error('MISSING_GROQ_KEY: Please configure your Groq API key.');
-  }
-
   const prompt = `
 Inspect this document image related to Chitral / higher education admissions.
 ${userNotes ? `User context/notes: "${userNotes}"` : ''}
@@ -482,13 +466,14 @@ Return a structured JSON object with:
 - recommendationForRegistrar: Concrete recommendation for institutional record-keeping.
 `;
 
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  const res = await fetch('/api/ai/groq', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`
     },
     body: JSON.stringify({
+      apiKey,
       model: GROQ_MODEL_ID,
       messages: [
         {
@@ -512,7 +497,7 @@ Return a structured JSON object with:
   const latencyMs = Date.now() - startTime;
   if (!res.ok) {
     const errBody = await res.json().catch(() => ({}));
-    const errDetail = errBody?.error?.message || `HTTP ${res.status}: ${res.statusText}`;
+    const errDetail = errBody?.error?.message || errBody?.error || `HTTP ${res.status}: ${res.statusText}`;
     throw new Error(`Groq Vision API Error: ${errDetail}`);
   }
 

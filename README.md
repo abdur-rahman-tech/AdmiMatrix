@@ -2,7 +2,7 @@
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![React 19](https://img.shields.io/badge/React-19_SPA-61dafb?logo=react)](https://react.dev/)
-[![Vite 6](https://img.shields.io/badge/Vite-6.0-646cff?logo=vite)](https://vitejs.dev/)
+[![Vite 8](https://img.shields.io/badge/Vite-8-646cff?logo=vite)](https://vitejs.dev/)
 [![Groq LPU](https://img.shields.io/badge/Groq_LPU-Qwen_3.8_27B-orange?logo=fastapi)](https://groq.com/)
 [![Reviewed by HindukushSoft](https://img.shields.io/badge/Code_Quality-Reviewed_by_HindukushSoft-emerald)](#4-technical-execution--code-verification-20)
 [![Official Records](https://img.shields.io/badge/Data-PBS_Census_%2B_UOCH_Official-purple)](#1-problem-understanding--relevance-20)
@@ -17,7 +17,7 @@
 |---|---|:---:|---|
 | **1** | [**Problem Understanding & Relevance**](#1-problem-understanding--relevance-20) | **20%** | Solves high-altitude Hindu Kush mountain isolation, floods, transport barriers, and parental permission dynamics. |
 | **2** | [**Innovation & Creativity**](#2-innovation--creativity-20) | **20%** | Independent gender headcount modeling, unconstrained demand vs. capacity separation, and walk-forward backtesting. |
-| **3** | [**AI Implementation & Depth**](#3-ai-implementation--depth-25) | **25%** | Groq LPU chat and multimodal inference (`qwen/qwen3.8-27b`), zero-hallucination math grounding, bilingual Urdu/English synthesis. |
+| **3** | [**AI Implementation & Depth**](#3-ai-implementation--depth-25) | **25%** | Groq chat/document inference (`qwen/qwen3.8-27b`), forecast-grounded prompts, bilingual Urdu/English synthesis. |
 | **4** | [**Technical Execution & Code Verification**](#4-technical-execution--code-verification-20) | **20%** | Pre-reviewed by HindukushSoft, 100% complete interactive prototype, strict TypeScript with **0 errors**. |
 | **5** | [**Presentation Clarity & Live Defense**](#5-presentation-clarity--live-defense-15) | **15%** | Structured 3-minute jury pitch, visual architecture diagrams, and ready defense answers for the 3-minute Q&A. |
 
@@ -75,7 +75,7 @@ AdmiMatrix abandons conventional, flawed planning models in favor of five key in
 │  2. Separation of Unconstrained Demand from Campus Physical Capacity   │
 │  3. Walk-Forward Chronological Backtesting (Leave-Next-Out)            │
 │  4. Dynamic 5, 6, and 7-Year Multi-Horizons (Zero Hardcoded Years)     │
-│  5. 9-Model Algorithmic Suite with Automated Occam's Razor Selection   │
+│  5. Multi-Model Algorithmic Suite with Automatic Backtest Selection   │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -103,14 +103,33 @@ In AdmiMatrix:
 Standard randomized K-Fold validation is statistically flawed for time-series data because it leaks future information into past predictions. AdmiMatrix strictly implements **expanding-window chronological validation** (Leave-Next-Out):
 - Evaluates models sequentially across historical cycles.
 - Computes **MAE** (Mean Absolute Error), **RMSE** (Root Mean Squared Error), and safe **MAPE** (Mean Absolute Percentage Error).
-- **Occam's Razor Rule:** If a simpler linear model performs within 5% of a higher-order polynomial, the engine automatically selects the simpler, more stable model.
-- Persistence and moving-average models remain visible as benchmarks, but AUTO excludes them from multi-year selection because they repeat a constant forecast at every future step; they remain available for manual comparison.
+- **Occam's Razor Rule:** If a simpler candidate performs within 5% of the top backtested model, the engine prefers the simpler candidate.
+- Persistence and moving-average models remain visible as comparison baselines, but AUTO excludes them because they repeat a constant value. They are not offered as multi-year forecast choices.
+
+### 2.4 Prediction methods, AI model, and tools
+
+The prediction numbers are calculated locally in TypeScript; the language model does not generate the forecast. The engine provides these methods:
+
+| Method | How it is used |
+|---|---|
+| Naive persistence | Last observed value; comparison baseline only. |
+| Ordinary Least Squares (OLS) | Linear trend fitted to the historical series. |
+| Holt linear exponential smoothing | Level and trend with a damped multi-year trend. |
+| Demographic ratio | Projects admissions from population and participation-rate trends. |
+| Degree-2 polynomial regression | Quadratic trend with bounds to limit extreme extrapolation. |
+| Rolling moving average | Recent-cycle mean; comparison baseline only. |
+| Logit-linked trend | Keeps projected female admission shares within realistic bounds. |
+| ARIMA(1,1,0) | Autoregressive model of year-to-year changes. |
+
+`AUTO` compares eligible models using chronological expanding-window backtests of total admissions (RMSE/MAE, with a simplicity preference for close scores). Naive persistence and moving average are excluded from automatic multi-year selection because a constant projection is their intended behavior. Explicit model selection, the baseline/optimistic/pessimistic scenario (+4%/-4% annually), and the selected 5–7 year horizon are shown in the forecast controls. Prediction intervals are approximate and widen with horizon; forecasts are estimates, not guaranteed admission counts.
+
+The AI explanation model configured in this build is **Groq `qwen/qwen3.8-27b`**. It receives historical data and the already-computed forecast to produce a structured English/Urdu explanation; it is not the forecasting model. The application tools are **React 19, TypeScript 7, Vite 8, Node.js/Express** (same-origin AI proxy), **Groq Chat Completions API**, **Recharts**, **PapaParse**, browser **IndexedDB/localStorage**, and npm. Forecast algorithms are implemented in the project's own TypeScript; there is no external forecasting/ML package.
 
 ---
 
 ## 3. AI Implementation & Depth (25%)
 
-AdmiMatrix integrates the **Groq LPU™ (Language Processing Unit)** inference engine to deliver real-time, zero-hallucination institutional intelligence.
+AdmiMatrix integrates the **Groq Cloud API** for grounded natural-language explanations of the local statistical results. The prompt includes the active model, metrics, and year-by-year forecast, but an LLM can still make mistakes; verify important decisions against the source data.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
@@ -126,11 +145,8 @@ AdmiMatrix integrates the **Groq LPU™ (Language Processing Unit)** inference e
 │                                                        │                      │
 │                                                        ▼                      │
 │  ┌─────────────────────────────────────────────────────────────────────────┐ │
-│  │ Groq Cloud API (High-Throughput LPU Hardware Inference)                 │ │
-│  │ - Flagship Reasoning: llama-3.3-70b-versatile                           │ │
-│  │ - Sub-Second Instant: llama-3.1-8b-instant                              │ │
-│  │ - MoE Architecture:   mixtral-8x7b-32768                                │ │
-│  │ - Compact Reasoning:  gemma2-9b-it                                      │ │
+│  │ Groq Cloud API (server-side proxy)                                      │ │
+│  │ - Configured model: qwen/qwen3.8-27b                                    │ │
 │  └─────────────────────────────────────┬───────────────────────────────────┘ │
 │                                        │                                      │
 │                                        ▼                                      │
@@ -144,18 +160,14 @@ AdmiMatrix integrates the **Groq LPU™ (Language Processing Unit)** inference e
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 3.1 Model Selection & Specialization
-AdmiMatrix uses dedicated Groq LPU models optimized for fast reasoning and zero hallucination:
-- **`llama-3.3-70b-versatile` (Recommended Default):** Advanced 70-billion parameter reasoning model that synthesizes multi-factor demographic challenges, flood disruptions, and seat capacity limits.
-- **`llama-3.1-8b-instant`:** Sub-second response engine for instant query answers in high-load scenarios.
-- **`mixtral-8x7b-32768`:** Sparse Mixture of Experts (MoE) with a 32,768-token window for parsing large tabular historical records.
-- **`gemma2-9b-it`:** Google's compact, highly efficient instruction model running on Groq hardware.
+### 3.1 AI model
+The application sends chat and document-inspection requests through its same-origin API proxy to Groq, using the configured **`qwen/qwen3.8-27b`** model. The proxy reads `GROQ_API_KEY` (or `GROQ-API-KEY`) from the server environment; the server key is never compiled into the browser bundle. A key entered in the UI is stored in that browser's local storage and sent only to the app's own proxy.
 
-### 3.2 Strict Mathematical Grounding (Zero Hallucination)
+### 3.2 Mathematical grounding
 AdmiMatrix enforces a strict rule: **The LLM never calculates raw numbers.**
 1. All future student demand, 95% confidence intervals, and backtest error rates are calculated first by the local TypeScript statistical engine.
 2. These exact figures are injected into the Groq system prompt as immutable facts.
-3. The AI is instructed to explain, interpret, and contextualize these figures—guaranteeing zero fabricated numbers.
+3. The AI is instructed to explain, interpret, and contextualize these figures. This grounding reduces unsupported numerical claims but cannot guarantee that every generated statement is correct.
 
 ### 3.3 Bilingual Urdu & English Synthesis
 To support regional stakeholders across Khyber Pakhtunkhwa, every AI response includes:
@@ -169,8 +181,8 @@ To support regional stakeholders across Khyber Pakhtunkhwa, every AI response in
 ### 4.1 Pre-Reviewed by HindukushSoft
 The codebase was reviewed by HindukushSoft engineers to ensure high software quality standards:
 - **Strict Typing:** 100% TypeScript with complete interface definitions (`AdmissionRecord`, `PopulationRecord`, `ForecastResult`, `StructuredAiResponse`).
-- **Zero Build Warnings:** Clean compilation via `tsc --noEmit` and Vite 6.
-- **Local Privacy & Security:** API keys are managed client-side in browser session storage and are never sent to external servers or telemetry trackers.
+- **Build tools:** TypeScript check (`npm run lint`) and Vite production build (`npm run build`).
+- **API key handling:** Server-configured keys remain on the server and are used by the same-origin proxy; an optional key entered in the UI is stored in browser local storage and sent to that proxy.
 - **Resilient Fallback:** If internet or API keys are unavailable, an offline deterministic rule engine handles common demographic queries.
 
 ### 4.2 Application Architecture
@@ -184,7 +196,7 @@ src/
 │   ├── analytics/           # Official admission records, 2022 context callout, PBS census
 │   ├── common/              # Shimmer skeletons, metric cards, status badges
 │   ├── docs/                # Technical documentation & historical event records
-│   ├── forecast/            # 9-model forecasting engine, scenario sliders, capacity line
+│   ├── forecast/            # Forecast controls, scenario sliders, capacity line
 │   ├── layout/              # Brand header, developer settings sidebar, theme toggle
 │   ├── overview/            # Executive KPI summary cards & regional highlights
 │   └── query/               # "Ask the Data" interactive Groq query assistant
@@ -194,9 +206,9 @@ src/
 │   ├── ai/
 │   │   └── groqService.ts   # Groq Cloud API LPU integration, grounding & bilingual output
 │   ├── db/
-│   │   └── databaseService.ts # Dual-tier database memory engine (IndexedDB + PostgreSQL DDL)
+│   │   └── databaseService.ts # Browser IndexedDB memory and SQL export helpers
 │   ├── ml/
-│   │   ├── forecastingEngine.ts # 9 models, walk-forward validation, auto-selector
+│   │   ├── forecastingEngine.ts # Forecast methods, walk-forward validation, auto-selector
 │   │   └── mathUtils.ts     # OLS, moving averages, Holt's damped, logit link, safe MAPE
 │   └── nlp/
 │       └── dataQueryEngine.ts # Offline deterministic fallback query resolver
@@ -204,43 +216,9 @@ src/
     └── index.ts             # Domain models, enum definitions & forecast interfaces
 ```
 
-### 4.3 Recommended Database Architecture for Institutional Memory
+### 4.3 Data storage and export
 
-To carry continuous institutional records, multi-horizon forecast runs, and demographic datasets for long-term memory across sessions, AdmiMatrix implements a **recommended dual-tier database architecture**:
-
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                   RECOMMENDED DATABASE & MEMORY TIERS                  │
-│                                                                        │
-│  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │ TIER 1: ACTIVE CLIENT-SIDE EDGE MEMORY (IndexedDB Engine)        │  │
-│  │ - Engine: W3C IndexedDB ('AdmiMatrix_Institutional_Memory_v1')   │  │
-│  │ - Stores: admissions, population, forecast_snapshots, audit_logs │  │
-│  │ - Capacity: Hundreds of MBs (bypasses 5MB localStorage cap)      │  │
-│  │ - Performance: Asynchronous non-blocking transactions            │  │
-│  │ - Offline Resilience: Works uninterrupted during mountain outages│  │
-│  └──────────────────────────────────────────────────────────────────┘  │
-│                                    │                                   │
-│                                    ▼                                   │
-│  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │ TIER 2: ENTERPRISE RELATIONAL DATABASE (PostgreSQL / Cloud SQL)   │  │
-│  │ - Engine: Google Cloud SQL (PostgreSQL)                          │  │
-│  │ - Schema: Strict DDL with CHECK (male + female = total)          │  │
-│  │ - Multi-Campus Sync: Main Campus & Booni Sub-Campus unified state│  │
-│  │ - Governance: ACID compliance & tamper-evident audit journal     │  │
-│  └──────────────────────────────────────────────────────────────────┘  │
-└────────────────────────────────────────────────────────────────────────┘
-```
-
-#### Why This Database Solution is Recommended:
-1. **Zero UI Latency & High Throughput:** Unlike synchronous browser `localStorage` which blocks the UI thread on large array serialization, the **Tier 1 IndexedDB engine** operates asynchronously with indexed cursor searches, making time-series lookups instant.
-2. **Carrying Multi-Horizon Forecast Snapshots:** Planners can freeze and commit active forecast scenarios (e.g., *7-Year Holt Damped with +4% Compounded Growth*) into database memory, complete with computed RMSE, MAE, and year-by-year prediction intervals.
-3. **Database-Level Headcount Invariance:** The production **PostgreSQL DDL schema** enforces mathematical consistency via relational constraints:
-   ```sql
-   CONSTRAINT check_gender_headcount_invariance 
-   CHECK (male_admitted + female_admitted = total_admitted)
-   ```
-4. **Export & Portability:** The built-in **Database & Memory Manager** in the Admin Workbench enables instant one-click export of complete database memory as a JSON backup or a production-ready PostgreSQL `.sql` migration dump.
+The running application stores records and forecast snapshots in browser **IndexedDB**. The Admin Workbench can export a JSON backup and generate SQL schema/export material for future database integration. A PostgreSQL/Cloud SQL service is not connected by this codebase, so multi-user synchronization and server-side relational constraints require a separate backend implementation.
 
 ### 4.4 Code Verification Commands
 ```bash
@@ -275,8 +253,8 @@ npm run build
 │   backtesting, and uncouple real demand from seating capacity limits." │
 │                                                                        │
 │  [1:45 - 2:30]  GROQ LPU REASONING & REGIONAL IMPACT                   │
-│  "Powered by Groq LPUs running Llama 3.3 70B, our AI explains trends  │
-│   with zero hallucination, citing exact mathematical error metrics and │
+│  "Powered by the Groq API running qwen/qwen3.8-27b, our AI explains   │
+│   forecast-grounded trends and cites computed error metrics while     │
 │   providing bilingual English and Urdu summaries for local planners."  │
 │                                                                        │
 │  [2:30 - 3:00]  CONCLUSION & CALL TO ACTION                            │
@@ -289,7 +267,7 @@ npm run build
 ### 5.2 3-Minute Jury Q&A Defense Sheet
 
 #### Q1: "How do you ensure your AI does not hallucinate enrollment projections?"
-> **Defense:** *"Our AI never calculates projections. All time-series models (Holt's Damped, Logit-Linked, OLS) run deterministically in local TypeScript. The calculated values, 95% confidence bands, and backtest error rates (RMSE, MAE, MAPE) are injected into the Groq prompt as fixed context. The Groq model is strictly confined to explaining and synthesizing the computed output."*
+> **Defense:** *"Our AI does not calculate the projections. Time-series methods run deterministically in local TypeScript. The computed values, approximate prediction intervals, and backtest errors (RMSE, MAE, MAPE) are included in the Groq prompt. The model is instructed to explain those results, but its response should still be checked."*
 
 #### Q2: "Why did female admissions collapse in 2022–2023, and how does your model handle it?"
 > **Defense:** *"In 2022, two compounding events hit Chitral: a student culture night dance triggered public criticism and parental reluctance, while July–August monsoon floods destroyed 68 bridges. Female enrollment fell to 79. Our system documents this as an institutional event rather than discarding it as random noise. The 2025–2026 data confirms a +144% recovery to 193 females, which our damped models project will approach parity by 2028."*
@@ -321,9 +299,9 @@ cd adminatrix
 # 2. Install dependencies
 npm install
 
-# 3. Create .env file (optional, or configure directly in the UI)
+# 3. Create .env file for the server-side API key (optional)
 cp .env.example .env
-# Add VITE_GROQ_API_KEY=gsk_... if available
+# Set GROQ_API_KEY=gsk_... in .env (do not use the VITE_ prefix)
 
 # 4. Start the development server
 npm run dev
@@ -333,8 +311,11 @@ npm run dev
 
 ### 3-Step In-App AI Verification
 1. Click **"Settings"** (slider icon) or **"Dev & Groq Settings"** in the top navigation.
-2. Enter your Groq API key (`gsk_...`) and click **"Test Groq LPU"** to confirm the connection.
+2. Either enter a Groq API key (`gsk_...`) or configure it as `GROQ_API_KEY` on the server, then click **"Test Groq LPU"**.
 3. Open the **"Ask AI"** tab and click any quick-start question to see instant, grounded reasoning in English and Urdu.
+
+### Deployment API key note
+The app needs a Node/Express server or a serverless host that runs the `api/ai` handler. A static-only host such as GitHub Pages cannot serve the AI API and will return 404. A GitHub repository secret is available to a GitHub Actions job only; it does not automatically become an environment variable on the deployed app. Configure the deployment host's runtime secret as `GROQ_API_KEY`. If a workflow runs the app itself, map the secret into its process environment, for example `GROQ_API_KEY: ${{ secrets['GROQ-API-KEY'] }}`. Never expose it with a `VITE_` variable.
 
 ---
 

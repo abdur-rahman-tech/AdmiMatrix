@@ -42,7 +42,7 @@ import {
   ForecastScenario
 } from '../../types';
 import { generateForecast } from '../../lib/ml/forecastingEngine';
-import { queryGroqInstitutionalAI, getActiveGroqApiKey, StructuredAiResponse } from '../../lib/ai/groqService';
+import { queryGroqInstitutionalAI, StructuredAiResponse } from '../../lib/ai/groqService';
 import { ApiKeyModal } from '../ai/ApiKeyModal';
 import { AiBriefingSkeleton } from '../common/SkeletonLoader';
 
@@ -96,7 +96,7 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
   const [showPredictionBands, setShowPredictionBands] = useState<boolean>(true);
   const [isScorecardExpanded, setIsScorecardExpanded] = useState<boolean>(false);
 
-  // Live Gemini AI Briefing State
+  // Live Groq AI briefing state
   const [isAiGenerating, setIsAiGenerating] = useState<boolean>(false);
   const [liveAiBriefing, setLiveAiBriefing] = useState<StructuredAiResponse | null>(null);
   const [aiBriefingError, setAiBriefingError] = useState<string | null>(null);
@@ -115,12 +115,6 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
   }, [admissionsData, horizonYears, selectedModel, scenario, planningCapacity, populationData]);
 
   const handleGenerateLiveAiBriefing = async () => {
-    const key = getActiveGroqApiKey();
-    if (!key) {
-      setIsKeyModalOpen(true);
-      return;
-    }
-
     setIsAiGenerating(true);
     setAiBriefingError(null);
 
@@ -131,8 +125,7 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
         prompt,
         admissionsData,
         populationData,
-        forecastResult,
-        { model: 'llama-3.3-70b-versatile' }
+        forecastResult
       );
       setLiveAiBriefing(result);
     } catch (err: any) {
@@ -344,12 +337,13 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
               <option value="HOLT">Holt's Linear Exponential Smoothing (Damped Trend)</option>
               <option value="OLS">Ordinary Least Squares (OLS) Linear Regression</option>
               <option value="DEMOGRAPHIC">Demographic Ratio Model (Chitral Population Proxy Signal)</option>
-              <option value="MOVING_AVG">3-Cycle Moving Average (Rolling Historical Mean)</option>
               <option value="POLYNOMIAL">Polynomial Degree 2 Curve (Quadratic Trend)</option>
-              <option value="NAIVE">Naive Baseline Benchmark (Persistence: y_t = y_(t-1))</option>
               <option value="LOGIT">Logit-Linked Asymptotic Trend (Sigmoid-Bounded Ratio Drift)</option>
               <option value="ARIMA">ARIMA(1, 1, 0) Differenced Model (Autoregressive)</option>
             </select>
+            <p className="mt-1.5 text-[10px] text-slate-500 dark:text-slate-400">
+              Naive and moving-average models remain available as comparison baselines; they intentionally repeat a constant value and are not offered as multi-year forecasts.
+            </p>
           </div>
 
           {/* 3. Scenario Selector */}
@@ -1135,7 +1129,7 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
         </div>
       )}
 
-      {/* Institutional Decision-Support Grounded Summary & Live Gemini AI Briefing */}
+      {/* Institutional decision-support summary and live Groq AI briefing */}
       <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center space-x-2">

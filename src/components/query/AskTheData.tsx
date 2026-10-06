@@ -29,7 +29,6 @@ import {
   analyzeAdmissionDocumentImageWithGroq,
   StructuredAiResponse,
   VisionDocumentAnalysis,
-  getActiveGroqApiKey,
   GROQ_MODEL_ID,
   getPreferredGroqModel,
   setPreferredGroqModel,
@@ -136,8 +135,6 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
     }>
   >([INITIAL_VERIFIED_BRIEFING]);
 
-  const activeGroqKey = getActiveGroqApiKey();
-
   const presetQueries = [
     'Why did female student enrollment collapse to 79 (34.5%) in 2022–2023, and how is it recovering?',
     'What was the historical female parity peak in 2018–2019 and why does current enrollment remain below it?',
@@ -152,16 +149,6 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
 
   const handleAskQuery = async (queryText: string) => {
     if (!queryText.trim()) return;
-
-    if (!activeGroqKey) {
-      if (onOpenDevSettings) {
-        onOpenDevSettings();
-      } else {
-        setIsKeyModalOpen(true);
-      }
-      setErrorMessage('Please enter your Groq API key in Dev & AI Settings to use Groq LPU models.');
-      return;
-    }
 
     setIsLoading(true);
     setErrorMessage(null);
@@ -205,15 +192,6 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
 
   const handleInspectDocument = async () => {
     if (!visionImageBase64) return;
-    if (!activeGroqKey) {
-      if (onOpenDevSettings) {
-        onOpenDevSettings();
-      } else {
-        setIsKeyModalOpen(true);
-      }
-      return;
-    }
-
     setIsLoading(true);
     setErrorMessage(null);
 

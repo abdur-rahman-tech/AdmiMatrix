@@ -22,6 +22,25 @@ function sendJson(res, status, body) {
   res.end(JSON.stringify(body));
 }
 
+function isSupportedMessageContent(content) {
+  if (typeof content === 'string') return content.length <= 100_000;
+  if (!Array.isArray(content) || content.length > 5) return false;
+
+  return content.every(part => {
+    if (!part || typeof part !== 'object') return false;
+    if (part.type === 'text') {
+      return typeof part.text === 'string' && part.text.length <= 100_000;
+    }
+    if (part.type === 'image_url') {
+      const url = part.image_url?.url;
+      return typeof url === 'string' &&
+        url.length <= MAX_BODY_BYTES &&
+        /^data:image\/(?:jpeg|png|webp|gif);base64,[A-Za-z0-9+/]+=*$/.test(url);
+    }
+    return false;
+  });
+}
+
 function isSameOrigin(req) {
   if (req.headers['sec-fetch-site'] === 'cross-site') return false;
   const origin = req.headers.origin;
@@ -216,9 +235,9 @@ export function createAiProxyMiddleware() {
 
       if (payload.messages.some(message =>
         !message || !['system', 'user', 'assistant'].includes(message.role) ||
-        typeof message.content !== 'string' || message.content.length > 100_000
+        !isSupportedMessageContent(message.content)
       )) {
-        return sendJson(res, 400, { error: 'Messages must contain a supported role and text content.' });
+        return sendJson(res, 400, { error: 'Messages must contain a supported role and text or image content.' });
       }
 
       const groqPayload = {

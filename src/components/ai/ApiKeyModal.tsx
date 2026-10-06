@@ -42,11 +42,6 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
     latencyMs?: number;
   } | null>(null);
 
-  const hasEnvGroqKey = Boolean(
-    (import.meta as any).env?.VITE_GROQ_API_KEY ||
-    (typeof process !== 'undefined' && process.env?.GROQ_API_KEY)
-  );
-
   useEffect(() => {
     if (isOpen) {
       setGroqKeyInput(getActiveGroqApiKey());
@@ -123,9 +118,9 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
               <label className="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px] flex items-center space-x-1.5">
                 <Zap className="w-3.5 h-3.5 text-orange-500" />
                 <span>Groq API Key (LPU)</span>
-                {hasEnvGroqKey && !groqKeyInput && (
+                {!groqKeyInput && (
                   <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono font-medium">
-                    (Defaulting to Environment Key)
+                    (Server key supported)
                   </span>
                 )}
               </label>
@@ -148,7 +143,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                   setGroqKeyInput(e.target.value);
                   setTestResult(null);
                 }}
-                placeholder="gsk_... (Enter your Groq API key)"
+                placeholder="Optional: gsk_... (or configure GROQ_API_KEY on the server)"
                 className="w-full pl-3 pr-10 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
               <button
@@ -204,7 +199,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
           <button
             type="button"
             onClick={handleTestConnection}
-            disabled={isTesting || (!groqKeyInput && !hasEnvGroqKey)}
+            disabled={isTesting}
             className="flex items-center space-x-1.5 px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 disabled:opacity-50 transition cursor-pointer"
           >
             <Activity className={`w-3.5 h-3.5 text-orange-500 ${isTesting ? 'animate-spin' : ''}`} />
