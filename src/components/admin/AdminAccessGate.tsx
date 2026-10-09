@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import {
   Lock,
-  Unlock,
   KeyRound,
   Mail,
-  Shield,
   ShieldAlert,
   ArrowRight,
   Send,
@@ -16,7 +14,6 @@ import {
   Eye,
   EyeOff,
   UserPlus,
-  Delete,
   Sparkles
 } from 'lucide-react';
 import { AdminUser, AccessRequest, UserRole } from '../../types';
@@ -26,15 +23,13 @@ interface AdminAccessGateProps {
   onLoginSuccess: (user: AdminUser) => void;
   accessRequests: AccessRequest[];
   onSubmitAccessRequest: (request: Omit<AccessRequest, 'id' | 'requestedAt' | 'status'>) => void;
-  onUpdateUserPin: (email: string, newPin: string) => void;
 }
 
 export const AdminAccessGate: React.FC<AdminAccessGateProps> = ({
   adminUsers,
   onLoginSuccess,
   accessRequests,
-  onSubmitAccessRequest,
-  onUpdateUserPin
+  onSubmitAccessRequest
 }) => {
   const [activeMode, setActiveMode] = useState<'PIN' | 'GMAIL' | 'REQUEST' | 'FORGOT'>('PIN');
 
@@ -44,7 +39,9 @@ export const AdminAccessGate: React.FC<AdminAccessGateProps> = ({
   const [pinError, setPinError] = useState<string | null>(null);
 
   // Gmail Login State
-  const [gmailInput, setGmailInput] = useState('');
+  const [gmailInput, setGmailInput] = useState(
+    () => adminUsers.find(user => user.isOwner)?.email || ''
+  );
   const [gmailPinInput, setGmailPinInput] = useState('');
   const [gmailError, setGmailError] = useState<string | null>(null);
 
@@ -56,11 +53,9 @@ export const AdminAccessGate: React.FC<AdminAccessGateProps> = ({
   const [reqReason, setReqReason] = useState('');
   const [reqSuccess, setReqSuccess] = useState(false);
   const [lastSubmittedEmail, setLastSubmittedEmail] = useState('');
-
-  // Forgot PIN State
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotStep, setForgotStep] = useState<'ENTER_EMAIL' | 'VERIFY_CODE' | 'RESET_PIN'>('ENTER_EMAIL');
-  const [simulatedCode, setSimulatedCode] = useState<string>('');
+  const [simulatedCode, setSimulatedCode] = useState('');
   const [enteredCode, setEnteredCode] = useState('');
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
@@ -70,8 +65,23 @@ export const AdminAccessGate: React.FC<AdminAccessGateProps> = ({
   // Find owner for display
   const ownerUser = adminUsers.find(u => u.isOwner) || adminUsers[0];
 
-  // Quick PIN submit
-  const handlePinSubmit = (e: React.FormEvent) => {
+  const authenticateAdmin = async (email: string, pin: string) => {
+    const response = await fetch('/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, pin })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Administrator sign-in failed.');
+
+    const user = result.user;
+    if (!user || user.role !== 'OWNER' || !user.isApproved || typeof user.email !== 'string') {
+      throw new Error('The server returned an invalid administrator session.');
+    }
+    onLoginSuccess(user);
+  };
+
+  const handlePinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setPinError(null);
 
@@ -80,17 +90,19 @@ export const AdminAccessGate: React.FC<AdminAccessGateProps> = ({
       setPinError('Please enter your 4-digit security PIN code.');
       return;
     }
+    if (!gmailInput.trim()) {
+      setPinError('Please enter your administrator email address.');
+      return;
+    }
 
-    const matchedUser = adminUsers.find(u => u.pin === trimmedPin && u.isApproved);
-    if (matchedUser) {
-      onLoginSuccess(matchedUser);
-    } else {
-      setPinError('Access Denied: Incorrect PIN code. This area is strictly restricted to authorized administrators. If you do not have a PIN code, please submit an Access Request below.');
+    try {
+      await authenticateAdmin(gmailInput.trim().toLowerCase(), trimmedPin);
+    } catch (error) {
+      setPinError(error instanceof Error ? error.message : 'Administrator sign-in failed.');
     }
   };
 
-  // Gmail + PIN submit
-  const handleGmailSubmit = (e: React.FormEvent) => {
+  const handleGmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setGmailError(null);
 
@@ -100,32 +112,20 @@ export const AdminAccessGate: React.FC<AdminAccessGateProps> = ({
       return;
     }
 
-    const matchedUser = adminUsers.find(
-      u => u.email.toLowerCase() === trimmedEmail && u.isApproved
-    );
-
-    if (!matchedUser) {
-      // Check if user has a pending request
-      const pendingReq = accessRequests.find(
-        r => r.email.toLowerCase() === trimmedEmail && r.status === 'PENDING'
-      );
-      if (pendingReq) {
-        setGmailError('Your access request is currently PENDING approval by the Admin (Abdur Rahman). You will be issued a PIN code once approved.');
-      } else {
-        setGmailError('Access Denied: No approved administrator account found for this Google Gmail. Submit an Access Request to be approved by the Admin.');
-      }
-      return;
-    }
-
     if (!gmailPinInput.trim()) {
       setGmailError('Please enter the security PIN code associated with this account.');
       return;
     }
 
-    if (matchedUser.pin === gmailPinInput.trim()) {
-      onLoginSuccess(matchedUser);
-    } else {
-      setGmailError('Incorrect PIN for this account. Use "Forgot PIN?" below or enter your registered PIN code.');
+    try {
+      await authenticateAdmin(trimmedEmail, gmailPinInput.trim());
+    } catch (error) {
+      const pendingReq = accessRequests.find(
+        request => request.email.toLowerCase() === trimmedEmail && request.status === 'PENDING'
+      );
+      setGmailError(pendingReq
+        ? 'Your access request is pending approval.'
+        : error instanceof Error ? error.message : 'Administrator sign-in failed.');
     }
   };
 
@@ -153,65 +153,19 @@ export const AdminAccessGate: React.FC<AdminAccessGateProps> = ({
     setReqReason('');
   };
 
-  // Forgot PIN: Request verification code to Google Gmail
   const handleForgotSendCode = (e: React.FormEvent) => {
     e.preventDefault();
-    setForgotError(null);
-
-    const trimmed = forgotEmail.trim().toLowerCase();
-    if (!trimmed) {
-      setForgotError('Please enter your registered Google Gmail.');
-      return;
-    }
-
-    const user = adminUsers.find(u => u.email.toLowerCase() === trimmed && u.isApproved);
-    if (!user) {
-      setForgotError('No approved administrator account exists with this Gmail address.');
-      return;
-    }
-
-    // Generate 6-digit OTP
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    setSimulatedCode(code);
-    setForgotStep('VERIFY_CODE');
+    setForgotError('PIN recovery is not available here. Contact the platform owner.');
   };
 
-  // Verify OTP code
   const handleForgotVerifyCode = (e: React.FormEvent) => {
     e.preventDefault();
-    setForgotError(null);
-
-    if (enteredCode.trim() !== simulatedCode) {
-      setForgotError('Invalid verification code. Please check and try again.');
-      return;
-    }
-
-    setForgotStep('RESET_PIN');
+    setForgotError('PIN recovery is not available here. Contact the platform owner.');
   };
 
-  // Save new PIN
   const handleForgotResetPin = (e: React.FormEvent) => {
     e.preventDefault();
-    setForgotError(null);
-
-    if (newPin.length < 4) {
-      setForgotError('New PIN key must be at least 4 digits.');
-      return;
-    }
-    if (newPin !== confirmPin) {
-      setForgotError('PIN keys do not match.');
-      return;
-    }
-
-    onUpdateUserPin(forgotEmail.trim().toLowerCase(), newPin);
-    setForgotSuccess(true);
-
-    const user = adminUsers.find(u => u.email.toLowerCase() === forgotEmail.trim().toLowerCase());
-    if (user) {
-      setTimeout(() => {
-        onLoginSuccess({ ...user, pin: newPin });
-      }, 1200);
-    }
+    setForgotError('PIN recovery is not available here. Contact the platform owner.');
   };
 
   const pendingRequestsCount = accessRequests.filter(r => r.status === 'PENDING').length;
@@ -307,39 +261,29 @@ export const AdminAccessGate: React.FC<AdminAccessGateProps> = ({
         </div>
 
         <div className="p-6">
-          {/* Preset Helper Card for Quick Evaluation */}
-          <div className="mb-5 p-3 rounded-xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/50 text-xs text-purple-900 dark:text-purple-200">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="font-bold flex items-center space-x-1.5 text-purple-700 dark:text-purple-300">
-                <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                <span>Authorized Owner (Admin) PIN Key</span>
-              </span>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400">Click to autofill</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setPinInput('7860');
-                  setPinError(null);
-                  setActiveMode('PIN');
-                }}
-                className="px-2.5 py-1 rounded-lg bg-white dark:bg-purple-900/60 border border-purple-300 dark:border-purple-700 text-xs font-mono font-bold text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900 transition flex items-center space-x-1 cursor-pointer"
-              >
-                <span>Owner (Admin):</span>
-                <span className="text-emerald-700 dark:text-emerald-400">7860</span>
-                <span className="text-[10px] text-slate-500 font-sans font-normal">(Abdur Rahman)</span>
-              </button>
-            </div>
-          </div>
-
           {/* MODE 1: PIN CODE LOGIN */}
           {activeMode === 'PIN' && (
             <form onSubmit={handlePinSubmit} className="space-y-4">
               <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
+                  Administrator Email
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={gmailInput}
+                  onChange={event => {
+                    setGmailInput(event.target.value);
+                    setPinError(null);
+                  }}
+                  placeholder="admin@example.com"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                />
+              </div>
+              <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                    Enter 4-Digit Security PIN Code
+                    Enter Administrator PIN
                   </label>
                   <button
                     type="button"
@@ -355,8 +299,8 @@ export const AdminAccessGate: React.FC<AdminAccessGateProps> = ({
                   <KeyRound className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-purple-600 dark:text-purple-400" />
                   <input
                     type={showPin ? 'text' : 'password'}
-                    maxLength={8}
-                    placeholder="••••"
+                    maxLength={128}
+                    placeholder="Enter your admin PIN"
                     value={pinInput}
                     onChange={e => {
                       setPinInput(e.target.value);
@@ -397,18 +341,7 @@ export const AdminAccessGate: React.FC<AdminAccessGateProps> = ({
                   <span>Don't have a PIN? Request Access from Admin</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveMode('FORGOT');
-                    setForgotEmail(ownerUser?.email || '');
-                    setForgotStep('ENTER_EMAIL');
-                    setForgotError(null);
-                  }}
-                  className="hover:underline text-slate-500 cursor-pointer"
-                >
-                  Forgot PIN?
-                </button>
+                <span className="text-slate-500">Contact the platform owner to reset your PIN.</span>
               </div>
             </form>
           )}
@@ -464,18 +397,6 @@ export const AdminAccessGate: React.FC<AdminAccessGateProps> = ({
               </button>
 
               <div className="pt-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveMode('FORGOT');
-                    setForgotEmail(gmailInput || ownerUser?.email || '');
-                    setForgotStep('ENTER_EMAIL');
-                    setForgotError(null);
-                  }}
-                  className="text-purple-600 dark:text-purple-400 hover:underline font-medium cursor-pointer"
-                >
-                  Forgot PIN? Reset via Gmail
-                </button>
                 <button
                   type="button"
                   onClick={() => setActiveMode('PIN')}

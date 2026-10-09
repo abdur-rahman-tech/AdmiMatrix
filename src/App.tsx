@@ -27,7 +27,6 @@ import { AdminDashboard } from './components/admin/AdminDashboard';
 import { DocumentationModal } from './components/docs/DocumentationModal';
 import { AskTheData } from './components/query/AskTheData';
 import { ApiKeyModal } from './components/ai/ApiKeyModal';
-import { DeveloperSettingsSidebar } from './components/layout/DeveloperSettingsSidebar';
 import skylerOfficialLogo from './assets';
 import { Heart, GraduationCap, ExternalLink } from 'lucide-react';
 
@@ -37,7 +36,7 @@ const DEFAULT_ADMIN_USERS: AdminUser[] = [
     email: 'abdurrahman17180@gmail.com',
     name: 'Abdur Rahman',
     role: 'OWNER',
-    pin: '7860',
+    pin: '',
     isOwner: true,
     isApproved: true,
     department: 'Directorate of Institutional Planning & Census Affairs',
@@ -73,13 +72,15 @@ export default function App() {
   const [userRole, setUserRole] = useState<UserRole>('VIEWER');
   const [isDocsOpen, setIsDocsOpen] = useState<boolean>(false);
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState<boolean>(false);
-  const [isDevSettingsOpen, setIsDevSettingsOpen] = useState<boolean>(false);
 
   // Admin users and Access Requests with local storage persistence
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>(() => {
     try {
       const saved = localStorage.getItem('uochpulse_admin_users_v2');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed.map(user => ({ ...user, pin: '' }));
+      }
       localStorage.removeItem('uochpulse_admin_users');
       return DEFAULT_ADMIN_USERS;
     } catch {
@@ -97,14 +98,27 @@ export default function App() {
   });
 
   // Admin session user - defaults to null to strictly restrict Admin Panel
-  const [currentSessionUser, setCurrentSessionUser] = useState<AdminUser | null>(() => {
-    try {
-      const saved = sessionStorage.getItem('uochpulse_session_user');
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [currentSessionUser, setCurrentSessionUser] = useState<AdminUser | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/admin/session')
+      .then(async response => {
+        if (!response.ok) throw new Error(`Admin session check failed (${response.status}).`);
+        const result = await response.json();
+        const user = result.user;
+        const validAdmin = user?.role === 'OWNER' && user.isApproved === true &&
+          typeof user.email === 'string';
+        if (!cancelled) setCurrentSessionUser(validAdmin ? user : null);
+      })
+      .catch(error => {
+        console.error('Could not verify the administrator session:', error);
+        if (!cancelled) setCurrentSessionUser(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Dark mode state - defaulting to false (Light Mode)
   const [darkMode, setDarkMode] = useState<boolean>(() => {
@@ -115,6 +129,15 @@ export default function App() {
       return false;
     }
   });
+
+  useEffect(() => {
+    try {
+      localStorage.removeItem('admi_groq_api_key');
+      localStorage.removeItem('admi_groq_preferred_model');
+    } catch (error) {
+      console.warn('Could not clear obsolete AI provider settings:', error);
+    }
+  }, []);
 
   // Sync darkMode with document root
   useEffect(() => {
@@ -141,7 +164,10 @@ export default function App() {
   // Sync users, requests, and session
   useEffect(() => {
     try {
-      localStorage.setItem('uochpulse_admin_users_v2', JSON.stringify(adminUsers));
+      localStorage.setItem(
+        'uochpulse_admin_users_v2',
+        JSON.stringify(adminUsers.map(user => ({ ...user, pin: '' })))
+      );
     } catch {}
   }, [adminUsers]);
 
@@ -150,17 +176,6 @@ export default function App() {
       localStorage.setItem('uochpulse_access_requests', JSON.stringify(accessRequests));
     } catch {}
   }, [accessRequests]);
-
-  useEffect(() => {
-    try {
-      if (currentSessionUser) {
-        sessionStorage.setItem('uochpulse_session_user', JSON.stringify(currentSessionUser));
-      } else {
-        sessionStorage.removeItem('uochpulse_session_user');
-        localStorage.removeItem('uochpulse_session_user');
-      }
-    } catch {}
-  }, [currentSessionUser]);
 
   // Update a user's PIN
   const handleUpdateUserPin = (email: string, newPin: string) => {
@@ -232,6 +247,18 @@ export default function App() {
   const defaultForecast = useMemo(() => {
     return generateForecast(admissionsData, 5, 'AUTO', 'BASELINE', 3000, populationData);
   }, [admissionsData, populationData]);
+  const isAdminSession = Boolean(
+    currentSessionUser?.isApproved &&
+    (currentSessionUser.role === 'OWNER' || currentSessionUser.role === 'ADMIN')
+  );
+
+  useEffect(() => {
+    if (activeTab === 'admin' && !isAdminSession) {
+      setActiveTab('overview');
+    } else if (activeTab === 'admin-login' && isAdminSession) {
+      setActiveTab('admin');
+    }
+  }, [activeTab, isAdminSession]);
 
   const handleResetDemo = () => {
     setPopulationData(INITIAL_POPULATION_DATA);
@@ -295,7 +322,7 @@ export default function App() {
           <AdmissionAnalytics
             admissionsData={admissionsData}
             dataSources={dataSources}
-            onNavigateToAdmin={() => setActiveTab('admin')}
+            onNavigateToAdmin={isAdminSession ? () => setActiveTab('admin') : undefined}
           />
         )}
 
@@ -318,11 +345,10 @@ export default function App() {
             admissionsData={admissionsData}
             populationData={populationData}
             forecastResult={defaultForecast}
-            onOpenDevSettings={() => setIsDevSettingsOpen(true)}
           />
         )}
 
-        {activeTab === 'admin' && (
+        {(activeTab === 'admin' && isAdminSession || activeTab === 'admin-login' && !isAdminSession) && (
           <AdminDashboard
             populationData={populationData}
             setPopulationData={setPopulationData}
@@ -340,6 +366,7 @@ export default function App() {
             currentSessionUser={currentSessionUser}
             setCurrentSessionUser={setCurrentSessionUser}
             onUpdateUserPin={handleUpdateUserPin}
+            onLoginSuccess={() => setActiveTab('admin')}
             forecastResult={defaultForecast}
           />
         )}
@@ -350,12 +377,6 @@ export default function App() {
 
       {/* AI Key Configuration Modal */}
       <ApiKeyModal isOpen={isApiKeyModalOpen} onClose={() => setIsApiKeyModalOpen(false)} />
-
-      {/* Developer & AI Settings Sidebar */}
-      <DeveloperSettingsSidebar
-        isOpen={isDevSettingsOpen}
-        onClose={() => setIsDevSettingsOpen(false)}
-      />
 
       {/* Platform Footer */}
       <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-6 text-xs text-slate-500 dark:text-slate-400">

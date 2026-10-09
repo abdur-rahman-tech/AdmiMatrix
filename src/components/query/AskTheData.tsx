@@ -25,15 +25,12 @@ import {
 } from 'lucide-react';
 import { AdmissionRecord, PopulationRecord, ForecastResult } from '../../types';
 import {
-  queryGroqInstitutionalAI,
-  analyzeAdmissionDocumentImageWithGroq,
+  queryGeminiInstitutionalAI,
+  analyzeAdmissionDocumentImageWithGemini,
   StructuredAiResponse,
   VisionDocumentAnalysis,
-  GROQ_MODEL_ID,
-  getPreferredGroqModel,
-  setPreferredGroqModel,
-  GroqModelId
-} from '../../lib/ai/groqService';
+  GEMINI_MODEL_ID,
+} from '../../lib/ai/geminiService';
 import { ApiKeyModal } from '../ai/ApiKeyModal';
 import { AiBriefingSkeleton, CardSkeleton } from '../common/SkeletonLoader';
 
@@ -41,7 +38,6 @@ interface AskTheDataProps {
   admissionsData: AdmissionRecord[];
   populationData: PopulationRecord[];
   forecastResult: ForecastResult | null;
-  onOpenDevSettings?: () => void;
 }
 
 type ModeTab = 'QUERY' | 'VISION';
@@ -49,12 +45,10 @@ type ModeTab = 'QUERY' | 'VISION';
 export const AskTheData: React.FC<AskTheDataProps> = ({
   admissionsData,
   populationData,
-  forecastResult,
-  onOpenDevSettings
+  forecastResult
 }) => {
   const [activeMode, setActiveMode] = useState<ModeTab>('QUERY');
   const [question, setQuestion] = useState('');
-  const [selectedModel, setSelectedModel] = useState<GroqModelId>(getPreferredGroqModel());
   const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -142,11 +136,6 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
     'What is the relationship between Chitral 2023 Digital Census population and university admissions?'
   ];
 
-  const handleModelChange = (model: GroqModelId) => {
-    setSelectedModel(model);
-    setPreferredGroqModel(model);
-  };
-
   const handleAskQuery = async (queryText: string) => {
     if (!queryText.trim()) return;
 
@@ -154,21 +143,15 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
     setErrorMessage(null);
 
     try {
-      const res = await queryGroqInstitutionalAI(queryText, admissionsData, populationData, forecastResult, {
-        model: selectedModel
-      });
+      const res = await queryGeminiInstitutionalAI(queryText, admissionsData, populationData, forecastResult);
       setQueryResponses(prev => [{ question: queryText, response: res }, ...prev]);
       setQuestion('');
     } catch (err: any) {
-      console.error('Groq AI Query Failed:', err);
-      if (err?.message?.includes('MISSING_GROQ_KEY')) {
-        if (onOpenDevSettings) {
-          onOpenDevSettings();
-        } else {
-          setIsKeyModalOpen(true);
-        }
+      console.error('Gemini AI query failed:', err);
+      if (err?.message?.includes('MISSING_GEMINI_KEY')) {
+        setIsKeyModalOpen(true);
       } else {
-        setErrorMessage(err?.message || 'Error processing Groq AI query.');
+        setErrorMessage(err?.message || 'Error processing Gemini AI query.');
       }
     } finally {
       setIsLoading(false);
@@ -196,22 +179,18 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
     setErrorMessage(null);
 
     try {
-      const result = await analyzeAdmissionDocumentImageWithGroq(
+      const result = await analyzeAdmissionDocumentImageWithGemini(
         visionImageBase64,
         visionMimeType,
         visionNotes
       );
       setVisionResult(result);
     } catch (err: any) {
-      console.error('Groq Vision Failed:', err);
-      if (err?.message?.includes('MISSING_GROQ_KEY')) {
-        if (onOpenDevSettings) {
-          onOpenDevSettings();
-        } else {
-          setIsKeyModalOpen(true);
-        }
+      console.error('Gemini document analysis failed:', err);
+      if (err?.message?.includes('MISSING_GEMINI_KEY')) {
+        setIsKeyModalOpen(true);
       } else {
-        setErrorMessage(err?.message || 'Error executing Groq Multimodal Vision analysis.');
+        setErrorMessage(err?.message || 'Error executing Gemini document analysis.');
       }
     } finally {
       setIsLoading(false);
@@ -230,7 +209,7 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
             </h2>
             <span className="text-[10px] font-mono uppercase px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-800 dark:bg-orange-950/80 dark:text-orange-300 font-bold border border-orange-200 dark:border-orange-800 flex items-center space-x-1 shadow-xs">
               <Zap className="w-3 h-3 text-orange-500 fill-orange-500" />
-              <span>Groq LPU: {selectedModel}</span>
+              <span>Google Gemini: {GEMINI_MODEL_ID}</span>
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
@@ -255,7 +234,7 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
         <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-xs flex items-start space-x-2.5">
           <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <span className="font-bold">Groq API Error:</span>
+            <span className="font-bold">Gemini API Error:</span>
             <p className="text-[11px]">{errorMessage}</p>
           </div>
         </div>
@@ -272,17 +251,6 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
                 <span>Ask Anything About Chitral Demographics or Admissions</span>
               </span>
 
-              {/* Model Selector */}
-              <div className="flex items-center space-x-2">
-                <span className="text-[11px] text-slate-400 font-medium">Model:</span>
-                <select
-                  value={selectedModel}
-                  onChange={e => handleModelChange(e.target.value as GroqModelId)}
-                  className="py-1 px-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
-                >
-                  <option value={GROQ_MODEL_ID}>{GROQ_MODEL_ID} (Chat)</option>
-                </select>
-              </div>
             </div>
 
             <form
@@ -556,12 +524,12 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
                   <span>Optical Document &amp; Gazette Vision Analysis</span>
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Upload official university admission gazettes, newspaper merit lists, or HEC notifications to verify data via Groq LPU Vision.
+                  Upload official university admission gazettes, newspaper merit lists, or HEC notifications to verify data with Gemini.
                 </p>
               </div>
 
               <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 font-bold">
-                Groq Vision
+                Gemini Vision
               </span>
             </div>
 
@@ -611,7 +579,7 @@ export const AskTheData: React.FC<AskTheDataProps> = ({
               {isLoading ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Scanning Document with Groq Vision...</span>
+                  <span>Scanning Document with Gemini...</span>
                 </>
               ) : (
                 <>

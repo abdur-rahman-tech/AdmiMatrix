@@ -3,7 +3,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![React 19](https://img.shields.io/badge/React-19_SPA-61dafb?logo=react)](https://react.dev/)
 [![Vite 8](https://img.shields.io/badge/Vite-8-646cff?logo=vite)](https://vitejs.dev/)
-[![Groq LPU](https://img.shields.io/badge/Groq_LPU-GPT--OSS_120B-orange?logo=fastapi)](https://groq.com/)
+[![Google Gemini](https://img.shields.io/badge/Google_Gemini-2.5_Flash-blue?logo=googlegemini)](https://ai.google.dev/)
 [![Reviewed by HindukushSoft](https://img.shields.io/badge/Code_Quality-Reviewed_by_HindukushSoft-emerald)](#4-technical-execution--code-verification-20)
 [![Official Records](https://img.shields.io/badge/Data-PBS_Census_%2B_UOCH_Official-purple)](#1-problem-understanding--relevance-20)
 
@@ -17,7 +17,7 @@
 |---|---|:---:|---|
 | **1** | [**Problem Understanding & Relevance**](#1-problem-understanding--relevance-20) | **20%** | Solves high-altitude Hindu Kush mountain isolation, floods, transport barriers, and parental permission dynamics. |
 | **2** | [**Innovation & Creativity**](#2-innovation--creativity-20) | **20%** | Independent gender headcount modeling, unconstrained demand vs. capacity separation, and walk-forward backtesting. |
-| **3** | [**AI Implementation & Depth**](#3-ai-implementation--depth-25) | **25%** | Groq GPT-OSS chat (`openai/gpt-oss-120b`) and Llama 4 Scout document vision, forecast-grounded prompts, bilingual Urdu/English synthesis. |
+| **3** | [**AI Implementation & Depth**](#3-ai-implementation--depth-25) | **25%** | Gemini 2.5 Flash chat and document image analysis, forecast-grounded prompts, bilingual Urdu/English synthesis. |
 | **4** | [**Technical Execution & Code Verification**](#4-technical-execution--code-verification-20) | **20%** | Pre-reviewed by HindukushSoft, 100% complete interactive prototype, strict TypeScript with **0 errors**. |
 | **5** | [**Presentation Clarity & Live Defense**](#5-presentation-clarity--live-defense-15) | **15%** | Structured 3-minute jury pitch, visual architecture diagrams, and ready defense answers for the 3-minute Q&A. |
 
@@ -129,7 +129,7 @@ The AI explanation model configured in this build is **Groq `openai/gpt-oss-120b
 
 ## 3. AI Implementation & Depth (25%)
 
-AdmiMatrix integrates the **Groq Cloud API** for grounded natural-language explanations of the local statistical results. The prompt includes the active model, metrics, and year-by-year forecast, but an LLM can still make mistakes; verify important decisions against the source data.
+AdmiMatrix integrates **Google Gemini 2.5 Flash** for grounded natural-language explanations of local statistical results and document image analysis. The prompt includes the active model, metrics, and year-by-year forecast, but an LLM can still make mistakes; verify important decisions against the source data.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
@@ -145,9 +145,8 @@ AdmiMatrix integrates the **Groq Cloud API** for grounded natural-language expla
 │                                                        │                      │
 │                                                        ▼                      │
 │  ┌─────────────────────────────────────────────────────────────────────────┐ │
-│  │ Groq Cloud API (server-side proxy)                                      │ │
-│  │ - Chat model: openai/gpt-oss-120b                                       │ │
-│  │ - Document vision: meta-llama/llama-4-scout-17b-16e-instruct            │ │
+│  │ Google Gemini 2.5 Flash (server-side proxy)                             │ │
+│  │ - Grounded chat and document image analysis                             │ │
 │  └─────────────────────────────────────┬───────────────────────────────────┘ │
 │                                        │                                      │
 │                                        ▼                                      │
@@ -162,12 +161,12 @@ AdmiMatrix integrates the **Groq Cloud API** for grounded natural-language expla
 ```
 
 ### 3.1 AI model
-The application sends chat requests through its same-origin API proxy to Groq using **`openai/gpt-oss-120b`**. Image-based document inspection uses the separate vision-capable **`meta-llama/llama-4-scout-17b-16e-instruct`** model. The proxy reads `GROQ_API_KEY` (or `GROQ-API-KEY`) from the server environment; the server key is never compiled into the browser bundle. A key entered in the UI is stored in that browser's local storage and sent only to the app's own proxy.
+The application sends chat and image-based document inspection requests through its same-origin API proxy to **`gemini-2.5-flash`**. The proxy reads `GEMINI_API_KEY` from the server environment; the key is never compiled into the browser bundle or stored in browser local storage.
 
 ### 3.2 Mathematical grounding
 AdmiMatrix enforces a strict rule: **The LLM never calculates raw numbers.**
 1. All future student demand, 95% confidence intervals, and backtest error rates are calculated first by the local TypeScript statistical engine.
-2. These exact figures are injected into the Groq system prompt as immutable facts.
+2. These exact figures are injected into the Gemini system prompt as immutable facts.
 3. The AI is instructed to explain, interpret, and contextualize these figures. This grounding reduces unsupported numerical claims but cannot guarantee that every generated statement is correct.
 
 ### 3.3 Bilingual Urdu & English Synthesis
@@ -183,7 +182,7 @@ To support regional stakeholders across Khyber Pakhtunkhwa, every AI response in
 The codebase was reviewed by HindukushSoft engineers to ensure high software quality standards:
 - **Strict Typing:** 100% TypeScript with complete interface definitions (`AdmissionRecord`, `PopulationRecord`, `ForecastResult`, `StructuredAiResponse`).
 - **Build tools:** TypeScript check (`npm run lint`) and Vite production build (`npm run build`).
-- **API key handling:** Server-configured keys remain on the server and are used by the same-origin proxy; an optional key entered in the UI is stored in browser local storage and sent to that proxy.
+- **API key handling:** The Gemini key remains on the server and is used by the same-origin proxy.
 - **Resilient Fallback:** If internet or API keys are unavailable, an offline deterministic rule engine handles common demographic queries.
 
 ### 4.2 Application Architecture
@@ -193,19 +192,19 @@ src/
 ├── assets/                  # Brand emblems & official logos
 ├── components/
 │   ├── admin/               # Ingestion workbench, PIN security, audit logs & DatabaseMemoryManager
-│   ├── ai/                  # Groq API key configuration modal & connection test
+│   ├── ai/                  # Gemini server-key status and connection test
 │   ├── analytics/           # Official admission records, 2022 context callout, PBS census
 │   ├── common/              # Shimmer skeletons, metric cards, status badges
 │   ├── docs/                # Technical documentation & historical event records
 │   ├── forecast/            # Forecast controls, scenario sliders, capacity line
-│   ├── layout/              # Brand header, developer settings sidebar, theme toggle
+│   ├── layout/              # Brand header and theme toggle
 │   ├── overview/            # Executive KPI summary cards & regional highlights
-│   └── query/               # "Ask the Data" interactive Groq query assistant
+│   └── query/               # "Ask the Data" Gemini assistant
 ├── data/
 │   └── defaultDatasets.ts   # PBS 1998–2023 census & official 2017–2026 admissions
 ├── lib/
 │   ├── ai/
-│   │   └── groqService.ts   # Groq Cloud API LPU integration, grounding & bilingual output
+│   │   └── geminiService.ts # Gemini API integration, grounding & bilingual output
 │   ├── db/
 │   │   └── databaseService.ts # Browser IndexedDB memory and SQL export helpers
 │   ├── ml/
@@ -253,8 +252,8 @@ npm run build
 │   independently, prevent time-series data leakage through walk-forward │
 │   backtesting, and uncouple real demand from seating capacity limits." │
 │                                                                        │
-│  [1:45 - 2:30]  GROQ LPU REASONING & REGIONAL IMPACT                   │
-│  "Powered by Groq GPT-OSS 120B for chat and Llama 4 Scout for vision, │
+│  [1:45 - 2:30]  GEMINI REASONING & REGIONAL IMPACT                     │
+│  "Powered by Gemini 2.5 Flash for chat and document vision,           │
 │   forecast-grounded trends and cites computed error metrics while     │
 │   providing bilingual English and Urdu summaries for local planners."  │
 │                                                                        │
@@ -268,13 +267,13 @@ npm run build
 ### 5.2 3-Minute Jury Q&A Defense Sheet
 
 #### Q1: "How do you ensure your AI does not hallucinate enrollment projections?"
-> **Defense:** *"Our AI does not calculate the projections. Time-series methods run deterministically in local TypeScript. The computed values, approximate prediction intervals, and backtest errors (RMSE, MAE, MAPE) are included in the Groq prompt. The model is instructed to explain those results, but its response should still be checked."*
+> **Defense:** *"Our AI does not calculate the projections. Time-series methods run deterministically in local TypeScript. The computed values, approximate prediction intervals, and backtest errors (RMSE, MAE, MAPE) are included in the Gemini prompt. The model is instructed to explain those results, but its response should still be checked."*
 
 #### Q2: "Why did female admissions collapse in 2022–2023, and how does your model handle it?"
 > **Defense:** *"In 2022, two compounding events hit Chitral: a student culture night dance triggered public criticism and parental reluctance, while July–August monsoon floods destroyed 68 bridges. Female enrollment fell to 79. Our system documents this as an institutional event rather than discarding it as random noise. The 2025–2026 data confirms a +144% recovery to 193 females, which our damped models project will approach parity by 2028."*
 
-#### Q3: "Why did you choose Groq LPUs instead of traditional cloud models?"
-> **Defense:** *"University decision-support systems require high responsiveness and predictable performance. Groq LPUs deliver sub-second token generation at high throughput. This allows university planners to adjust scenario sliders in real time and receive grounded briefings without latency delays."*
+#### Q3: "Why did you choose Gemini?"
+> **Defense:** *"Gemini 2.5 Flash supports grounded text and document-image analysis through one model and API. Keeping the API key on the server also prevents it from being exposed in the browser bundle."*
 
 #### Q4: "Why model male and female admissions separately instead of using a percentage split?"
 > **Defense:** *"Male and female enrollment in Chitral follow different socio-economic dynamics. Female admissions are heavily dependent on safe transport from Upper Chitral and on-campus hostel availability, whereas male students frequently commute or stay in private rentals. Modeling them independently preserves real demographic behaviors."*
@@ -289,7 +288,7 @@ npm run build
 ### Prerequisites
 - **Node.js:** v18.0.0 or higher
 - **npm:** v9.0.0 or higher
-- **Groq API Key (Optional for AI Queries):** Get a free key at [console.groq.com](https://console.groq.com/keys)
+- **Gemini API Key (Optional for AI Queries):** Create a key in [Google AI Studio](https://aistudio.google.com/app/apikey). The free-tier chat model is `gemini-2.5-flash`.
 
 ### Local Development
 ```bash
@@ -300,9 +299,10 @@ cd adminatrix
 # 2. Install dependencies
 npm install
 
-# 3. Create .env file for the server-side API key (optional)
+# 3. Configure server-side keys and admin sign-in
 cp .env.example .env
-# Set GROQ_API_KEY=gsk_... in .env (do not use the VITE_ prefix)
+# Set GEMINI_API_KEY=... and ADMIN_PIN=... in .env.
+# Keep both keys server-side; do not use a VITE_ prefix.
 
 # 4. Start the development server
 npm run dev
@@ -310,13 +310,17 @@ npm run dev
 # 5. Open your browser at http://localhost:3000
 ```
 
-### 3-Step In-App AI Verification
-1. Click **"Settings"** (slider icon) or **"Dev & Groq Settings"** in the top navigation.
-2. Either enter a Groq API key (`gsk_...`) or configure it as `GROQ_API_KEY` on the server, then click **"Test Groq LPU"**.
-3. Open the **"Ask AI"** tab and click any quick-start question to see instant, grounded reasoning in English and Urdu.
+### AI Setup
+1. Set `GEMINI_API_KEY` in the server's `.env` file. The AI Settings dialog reports whether it is configured and can test the server key without exposing it to the browser.
+2. Open **"Ask AI"**. Chat queries and document image analysis use `gemini-2.5-flash`.
+
+### Admin access
+The public navigation shows an **Admin sign in** entry but does not show the Admin panel. After a successful server-side sign-in, the Admin navigation and panel appear. Configure the owner credentials with `ADMIN_EMAIL`, an `ADMIN_PIN` of at least 12 characters, and a separate random `ADMIN_SESSION_SECRET` of at least 32 characters. The server issues an HttpOnly, SameSite session cookie, rate-limits failed sign-ins, and does not accept credentials from browser storage. The built-in sign-in currently authenticates only this configured owner account.
+
+The current app stores business data and admin-user management in browser local storage. This UI/session gate is not a substitute for server-side authorization around sensitive records or multi-user persistence; deploy sensitive institutional data only after those operations are moved behind authenticated server endpoints.
 
 ### Deployment API key note
-The app needs a Node/Express server or a serverless host that runs the `api/ai` handler. A static-only host such as GitHub Pages cannot serve the AI API and will return 404. A GitHub repository secret is available to a GitHub Actions job only; it does not automatically become an environment variable on the deployed app. Configure the deployment host's runtime secret as `GROQ_API_KEY`. If a workflow runs the app itself, map the secret into its process environment, for example `GROQ_API_KEY: ${{ secrets['GROQ-API-KEY'] }}`. Never expose it with a `VITE_` variable.
+The app needs a Node/Express server or a serverless host that runs the API middleware. A static-only host such as GitHub Pages cannot serve the AI or admin APIs. A GitHub repository secret is available to a GitHub Actions job only; it does not automatically become an environment variable on the deployed app. Add a repository secret named `GEMINI_API_KEY` and map it into the server process environment, for example `GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}`. Configure `ADMIN_PIN` and `ADMIN_SESSION_SECRET` as server runtime secrets too. Never expose any of these values with a `VITE_` variable.
 
 ---
 

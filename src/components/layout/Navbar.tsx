@@ -48,10 +48,12 @@ export const Navbar: React.FC<NavbarProps> = ({
     {
       id: 'admin',
       label: 'Admin',
-      icon: currentSessionUser ? Unlock : Lock,
-      adminOnly: false
+      icon: Unlock,
+      adminOnly: true
     },
   ];
+  const isAdmin = currentSessionUser?.isApproved &&
+    (currentSessionUser.role === 'OWNER' || currentSessionUser.role === 'ADMIN');
 
   return (
     <header className="sticky top-0 z-40 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white shadow-xs">
@@ -107,7 +109,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
-              if (item.adminOnly && userRole === 'VIEWER') {
+              if (item.adminOnly && !isAdmin) {
                 return null;
               }
               return (
@@ -129,7 +131,16 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Right Controls Area: Admin Session */}
           <div className="flex items-center space-x-2">
-            {currentSessionUser && (
+            {!isAdmin && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('admin-login')}
+                className="px-2.5 py-1 text-xs font-semibold rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-purple-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+              >
+                Admin sign in
+              </button>
+            )}
+            {isAdmin && currentSessionUser && (
               <div className="flex items-center space-x-1 pl-1">
                 <button
                   type="button"
@@ -150,7 +161,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
-            if (item.adminOnly && userRole === 'VIEWER') return null;
+            if (item.adminOnly && !isAdmin) return null;
             return (
               <button
                 key={item.id}

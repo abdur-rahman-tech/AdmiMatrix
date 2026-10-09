@@ -42,7 +42,7 @@ import {
   ForecastScenario
 } from '../../types';
 import { generateForecast } from '../../lib/ml/forecastingEngine';
-import { queryGroqInstitutionalAI, StructuredAiResponse } from '../../lib/ai/groqService';
+import { queryGeminiInstitutionalAI, StructuredAiResponse } from '../../lib/ai/geminiService';
 import { ApiKeyModal } from '../ai/ApiKeyModal';
 import { AiBriefingSkeleton } from '../common/SkeletonLoader';
 
@@ -96,7 +96,7 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
   const [showPredictionBands, setShowPredictionBands] = useState<boolean>(true);
   const [isScorecardExpanded, setIsScorecardExpanded] = useState<boolean>(false);
 
-  // Live Groq AI briefing state
+  // Live Gemini AI briefing state
   const [isAiGenerating, setIsAiGenerating] = useState<boolean>(false);
   const [liveAiBriefing, setLiveAiBriefing] = useState<StructuredAiResponse | null>(null);
   const [aiBriefingError, setAiBriefingError] = useState<string | null>(null);
@@ -121,7 +121,7 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
     const prompt = `Provide an executive institutional planning briefing for the University of Chitral administration based on the currently selected ${forecastResult.modelName} forecast over ${forecastResult.horizonYears} years under the ${scenario} scenario. Specifically address whether projected demand exceeds the planning capacity of ${planningCapacity} seats, the gender parity trajectory, and key operational recommendations for the Vice Chancellor and Registrar.`;
 
     try {
-      const result = await queryGroqInstitutionalAI(
+      const result = await queryGeminiInstitutionalAI(
         prompt,
         admissionsData,
         populationData,
@@ -129,10 +129,10 @@ export const ForecastingControlRoom: React.FC<ForecastingControlRoomProps> = ({
       );
       setLiveAiBriefing(result);
     } catch (err: any) {
-      if (err?.message?.includes('MISSING_GROQ_KEY')) {
+      if (err?.message?.includes('MISSING_GEMINI_KEY')) {
         setIsKeyModalOpen(true);
       } else {
-        setAiBriefingError(err?.message || 'Error generating live Groq AI briefing.');
+        setAiBriefingError(err?.message || 'Error generating live Gemini AI briefing.');
       }
     } finally {
       setIsAiGenerating(false);

@@ -54,6 +54,7 @@ interface AdminDashboardProps {
   currentSessionUser: AdminUser | null;
   setCurrentSessionUser: (user: AdminUser | null) => void;
   onUpdateUserPin: (email: string, newPin: string) => void;
+  onLoginSuccess?: () => void;
   forecastResult?: ForecastResult;
 }
 
@@ -74,16 +75,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   currentSessionUser,
   setCurrentSessionUser,
   onUpdateUserPin,
+  onLoginSuccess,
   forecastResult
 }) => {
-  // If not logged in, show Owner Security Gate
-  if (!currentSessionUser) {
+  const [activeMainTab, setActiveMainTab] = useState<'POPULATION' | 'ADMISSIONS' | 'GOVERNANCE' | 'AUDIT' | 'DATABASE'>('POPULATION');
+  const isAdmin = currentSessionUser?.isApproved &&
+    (currentSessionUser.role === 'OWNER' || currentSessionUser.role === 'ADMIN');
+
+  if (!isAdmin) {
     return (
       <div id="admin-dashboard-container" className="py-2">
         <AdminAccessGate
           adminUsers={adminUsers}
           onLoginSuccess={user => {
             setCurrentSessionUser(user);
+            onLoginSuccess?.();
             const newAudit: AuditLog = {
               id: `audit-${Date.now()}`,
               timestamp: new Date().toISOString(),
@@ -116,14 +122,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             };
             setAuditLogs(prev => [audit, ...prev]);
           }}
-          onUpdateUserPin={onUpdateUserPin}
         />
       </div>
     );
   }
-
-  // Authenticated Dashboard Navigation Tabs
-  const [activeMainTab, setActiveMainTab] = useState<'POPULATION' | 'ADMISSIONS' | 'GOVERNANCE' | 'AUDIT' | 'DATABASE'>('POPULATION');
 
   const pendingCount = accessRequests.filter(r => r.status === 'PENDING').length;
 
@@ -173,7 +175,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
 
           <button
-            onClick={() => {
+            onClick={async () => {
+              try {
+                const response = await fetch('/api/admin/logout', { method: 'POST' });
+                if (!response.ok) throw new Error(`Sign-out failed (${response.status}).`);
+              } catch (error) {
+                console.error('Admin sign-out failed:', error);
+                return;
+              }
               const audit: AuditLog = {
                 id: `audit-${Date.now()}`,
                 timestamp: new Date().toISOString(),
