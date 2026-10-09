@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { GoogleGenAI } from '@google/genai';
 
 const GEMINI_MODEL_ID = 'gemini-2.5-flash';
 const MAX_BODY_BYTES = 1024 * 1024;
@@ -134,39 +135,19 @@ async function callGemini(apiKey, payload) {
     });
   }
 
-  const generationConfig = {
+  const config = {
     temperature: payload.temperature ?? 0.1,
     maxOutputTokens: payload.max_tokens ?? 4096,
+    ...(systemInstruction ? { systemInstruction: systemInstruction.parts[0].text } : {}),
     ...(payload.response_format ? { responseMimeType: 'application/json' } : {})
   };
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL_ID}:generateContent`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey
-      },
-      body: JSON.stringify({
-        ...(systemInstruction ? { systemInstruction } : {}),
-        contents,
-        generationConfig
-      }),
-      signal: AbortSignal.timeout(60_000)
-    }
-  );
-
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const error = new Error(result.error?.message || `Gemini returned HTTP ${response.status}.`);
-    error.status = response.status >= 400 && response.status < 500 ? response.status : 502;
-    throw error;
-  }
-
-  const text = result.candidates?.[0]?.content?.parts
-    ?.map(part => part.text || '')
-    .join('')
-    .trim();
+  const ai = new GoogleGenAI({ apiKey, vertexai: false });
+  const response = await ai.models.generateContent({
+    model: GEMINI_MODEL_ID,
+    contents,
+    config
+  });
+  const text = response.text?.trim();
   if (!text) {
     const error = new Error('Gemini returned an empty completion response.');
     error.status = 502;
@@ -174,6 +155,23 @@ async function callGemini(apiKey, payload) {
   }
 
   return { choices: [{ message: { content: text } }] };
+}
+
+function getGeminiError(error) {
+  const message = error instanceof Error ? error.message : 'Gemini proxy request failed.';
+  const status = Number(error?.status || error?.code);
+  if (status === 401 || status === 403 ||
+      /invalid authentication credentials|api key not valid|unauthenticated|permission denied/i.test(message)) {
+    const authenticationError = new Error(
+      'Google rejected GEMINI_API_KEY. Create or copy a Gemini API key from Google AI Studio → API keys (https://aistudio.google.com/api-keys), then replace the server value and restart it. Do not use an OAuth access token or a key restricted to a different Google API. If this is an AI Studio authorization key, check its linked project and Gemini API access.'
+    );
+    authenticationError.status = status === 403 ? 403 : 401;
+    return authenticationError;
+  }
+
+  const requestError = new Error(message);
+  requestError.status = status >= 400 && status <= 599 ? status : 502;
+  return requestError;
 }
 
 function buildAdminUser(email) {
@@ -297,8 +295,9 @@ export function createAiProxyMiddleware() {
 
       return sendJson(res, 200, await callGemini(apiKey, body));
     } catch (error) {
-      console.error('Gemini proxy request failed:', error.message);
-      return sendJson(res, error.status || 502, { error: error.message || 'Gemini proxy request failed.' });
+      const geminiError = getGeminiError(error);
+      console.error('Gemini proxy request failed:', geminiError.message);
+      return sendJson(res, geminiError.status, { error: geminiError.message });
     }
   };
 }
